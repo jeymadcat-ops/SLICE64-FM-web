@@ -476,9 +476,13 @@ async function connect() {
     $('#link-pill').textContent = `FM-1 ${info.version}`;
     $('#link-pill').className = 'pill on';
     log(`connected: ${out.name} → / ← ${inp.name}, firmware ${info.version}`);
-    if (info.proto >= 2) live.start(state.link, info.proto);
-    if (info.proto < 4) log('The Live panel only mirrors with this firmware: install s1.6 or later to play the FM-1 from here.');
-    else { live.stop(); $('#l-status').textContent = `Firmware ${info.version} has no screen mirror: install s1.6 or later.`; }
+    if (info.proto >= 2) {
+      live.start(state.link, info.proto);
+      if (info.proto < 4) log('The Live panel only mirrors with this firmware: install s1.6 or later to play the FM-1 from here.');
+    } else {
+      live.stop();
+      $('#l-status').textContent = `Firmware ${info.version} has no screen mirror: install s1.6 or later.`;
+    }
     setBusy(false);
     renderUsage();
   } catch (e) {
