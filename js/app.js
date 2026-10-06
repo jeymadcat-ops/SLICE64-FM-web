@@ -70,6 +70,7 @@ document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
 
 $('#f-new').onclick = () => { if (!confirm('Start an empty song without samples?')) return; state.song = Song.fresh(); state.bank.slots.forEach((s) => s.clear()); state.pat = state.row = state.col = 0; refreshAll(); changed(); };
 $('#f-demo').onclick = () => { if (!confirm('Load the jungle demo (song and samples)?')) return; state.song = Song.demo(); state.bank.loadDemo(); refreshAll(); changed(); };
+$('#f-chip').onclick = () => { if (!confirm('Load SCENE 92, the chiptune demo (synthesis only, the samples stay)?')) return; state.song = Song.chip(); state.pat = state.row = state.col = 0; refreshAll(); changed(); toast('SCENE 92 loaded: Device > Send song to play it on the FM-1'); };
 $('#f-open').onclick = () => $('#f-input').click();
 $('#f-input').onchange = async (e) => {
   const f = e.target.files[0];
