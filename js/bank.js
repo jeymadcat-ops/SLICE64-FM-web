@@ -24,7 +24,7 @@ export class Slot {
 }
 
 export class Bank {
-  constructor() { this.slots = Array.from({ length: SAMPLES }, () => new Slot()); this.capacity = 258048; }
+  constructor() { this.slots = Array.from({ length: SAMPLES }, () => new Slot()); this.capacity = 188416; }
 
   get used() { return this.slots.reduce((n, s) => n + (s.empty ? 0 : s.data.length), 0); }
 

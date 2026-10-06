@@ -58,7 +58,18 @@
       </div>
       <div class="progress"><div id="d-bar"></div></div>
       <div id="d-status" class="hint">Idle.</div>
-      <p class="hint">A song sent is stored in the FM-1's flash and stays after power-off. Samples go to their own flash bank (about 8 s at 32 kHz, 16 s at 16 kHz).</p>
+      <p class="hint">A song sent is stored in the FM-1's flash and stays after power-off. Samples go to their own flash bank (about 6 s at 32 kHz, 12 s at 16 kHz).</p>
+    </div>
+    <div class="card">
+      <h2>SID player</h2>
+      <p class="hint">A C64 tune (.sid, PSID or RSID) to play on the FM-1: its three SID voices on tracks 1-3, the keys play track 4 (FM). On the FM-1: SEQ, then SEQ again, then PLAY. SELECT changes the subtune, K1-K3 the voice volumes, K4 the FM instrument. Firmware s2.8 or later.</p>
+      <p><input id="d-sid-file" type="file" accept=".sid"></p>
+      <dl id="d-sid-local" class="info"></dl>
+      <div class="grid2">
+        <button id="d-sid-send" class="acc" disabled>Send .SID to the FM-1</button>
+        <button id="d-sid-info" disabled>Read the FM-1's .SID</button>
+      </div>
+      <dl id="d-sid-dev" class="info"></dl>
     </div>
   </div>
   <div class="card">

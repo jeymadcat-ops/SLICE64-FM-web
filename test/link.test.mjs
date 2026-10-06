@@ -129,6 +129,23 @@ try {
   check(await link.transport(true) === true, 'play');
   check(await link.transport(false) === false, 'stop');
   await link.save();
+
+  // protocol 6: a .SID file in flash, kept through a power cycle
+  if (info.proto >= 6) {
+    const sid = new Uint8Array(0x7C + 6);
+    sid.set([0x50, 0x53, 0x49, 0x44], 0);                     // "PSID"
+    sid[5] = 2; sid[7] = 0x7C; sid[8] = 0x10; sid[10] = 0x10; sid[12] = 0x10; sid[13] = 0x05; sid[15] = 1; sid[17] = 1;
+    sid.set([...'WEB TEST'].map((c) => c.charCodeAt(0)), 22);
+    sid.set([0xA9, 0x0F, 0x8D, 0x18, 0xD4, 0x60], 0x7C);       // init: LDA #$0F, STA $D418; play: RTS
+    check((await link.sidInfo()).room === 69616, 'sid room');
+    await link.writeSid(sid);
+    let s = await link.sidInfo();
+    check(s.present && s.size === sid.length && s.songs === 1 && s.name === 'WEB TEST', 'sid sent ' + JSON.stringify(s));
+    await powerCycle();
+    s = await link.sidInfo();
+    check(s.present && s.name === 'WEB TEST', 'sid after power-on ' + JSON.stringify(s));
+    check((await link.info()).bankBytes === 188416, 'bank shrunk for the SID slot');
+  }
 } catch (e) {
   fails++;
   console.log('FAIL', e.message);

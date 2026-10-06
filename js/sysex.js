@@ -3,7 +3,8 @@
 // data = pack7 (groups of up to 7 bytes after a byte holding their top bits).
 
 export const CMD = { INFO: 1, SONG_READ: 2, SONG_BEGIN: 3, SONG_WRITE: 4, SONG_END: 5, SAVE: 6, TRANSPORT: 7,
-  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13, SCREEN_ALL: 14, INPUT: 15, SCREEN_PACK: 16 };
+  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13, SCREEN_ALL: 14, INPUT: 15, SCREEN_PACK: 16,
+  SID_INFO: 17, SID_BEGIN: 18, SID_WRITE: 19, SID_END: 20 };
 export const RC_TEXT = ['ok', 'bad arguments', 'flash error', 'CRC mismatch', 'transfer not started', 'no flash'];
 export const CHUNK = 256;
 const HEAD = [0xF0, 0x7D, 0x53, 0x36];
@@ -189,6 +190,38 @@ export class Link {
     Link.rc(await this.request(CMD.BANK_END, [...u32(data.length), ...u32(crc32(data)), ...pack7(entries)],
       { timeout: 4000, tries: 1 }), 'samples');
   }
+}
+
+// The .SID file in the FM-1's flash (protocol 6)
+Link.prototype.sidInfo = async function () {
+  const a = await this.request(CMD.SID_INFO);
+  const strs = [];
+  let i = 12;
+  for (let k = 0; k < 3; k++) {
+    let s = '';
+    while (i < a.length && a[i]) s += String.fromCharCode(a[i++]);
+    i++;
+    strs.push(s);
+  }
+  return { present: !!a[0], size: getU32(a, 1), room: getU32(a, 6), songs: a[11], name: strs[0], author: strs[1], released: strs[2] };
+};
+
+Link.prototype.writeSid = async function (bytes, progress) {
+  Link.rc(await this.request(CMD.SID_BEGIN, u32(bytes.length), { timeout: 5000 }), 'SID');
+  for (let off = 0; off < bytes.length; off += CHUNK) {
+    const chunk = bytes.subarray(off, Math.min(off + CHUNK, bytes.length));
+    Link.rc(await this.request(CMD.SID_WRITE, [...u32(off), ...pack7(chunk)], { timeout: 3000 }), 'SID');
+    progress?.(off + chunk.length, bytes.length);
+  }
+  Link.rc(await this.request(CMD.SID_END, u32(crc32(bytes)), { timeout: 4000, tries: 1 }), 'SID');
+};
+
+// A .SID file's header (PSID / RSID), or null
+export function sidHeader(b) {
+  if (b.length < 0x76 || !/^[PR]SID$/.test(String.fromCharCode(b[0], b[1], b[2], b[3]))) return null;
+  const str = (o) => { let s = ''; for (let i = o; i < o + 32 && b[i]; i++) s += String.fromCharCode(b[i]); return s; };
+  const be = (o) => b[o] << 8 | b[o + 1];
+  return { type: String.fromCharCode(b[0]) + 'SID', songs: be(14) || 1, start: be(16) || 1, name: str(22), author: str(54), released: str(86) };
 }
 
 // Web MIDI (Chrome / Edge, SysEx permission)

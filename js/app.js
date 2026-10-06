@@ -1,7 +1,7 @@
 import { Song, TRACKS, PATTERNS, INSTRS, SAMPLES, NOTE_OFF, ENGINES, FX_LIST, FX_HELP, PARAMS, DIST_NAMES, DELAY_TIMES, noteName, clamp } from './song.js';
 import { PRESETS, SONG_BYTES } from './data.js';
 import { Bank, RATES, decodeFile, render, play, projectFile, readProject } from './bank.js';
-import { Link, MidiTransport, midiAccess, LinkError } from './sysex.js';
+import { Link, MidiTransport, midiAccess, LinkError, sidHeader } from './sysex.js';
 import { Live } from './live.js';
 
 const $ = (s) => document.querySelector(s);
@@ -420,6 +420,9 @@ function setBusy(b) {
   const ok = !!state.link && !b;
   for (const id of ['#d-send-all', '#d-send-song', '#d-send-bank', '#d-read-song', '#d-read-bank', '#d-save', '#d-play', '#d-stop', '#d-test'])
     $(id).disabled = !ok;
+  const sid = ok && (state.info?.proto || 0) >= 6;
+  $('#d-sid-send').disabled = !sid || !state.sid;
+  $('#d-sid-info').disabled = !sid;
 }
 function progress(done, total, what) {
   $('#d-bar').style.width = (total ? done * 100 / total : 0) + '%';
@@ -517,6 +520,39 @@ $('#d-read-bank').onclick = () => job('Read samples', async () => {
   state.bank.fromDevice(info, data); renderSamples(); changed();
 });
 $('#d-save').onclick = () => job('Save on the FM-1', () => state.link.save());
+
+// .SID files: one at a time in the FM-1's flash
+function showSid(dl, h, size) {
+  dl.replaceChildren(...(h ? [
+    el('dt', { textContent: 'Title' }), el('dd', { textContent: h.name || '?' }),
+    el('dt', { textContent: 'Author' }), el('dd', { textContent: h.author || '?' }),
+    el('dt', { textContent: 'Released' }), el('dd', { textContent: h.released || '?' }),
+    el('dt', { textContent: 'Subtunes' }), el('dd', { textContent: String(h.songs) }),
+    el('dt', { textContent: 'Size' }), el('dd', { textContent: `${(size / 1024).toFixed(1)} KB` })] : []));
+}
+$('#d-sid-file').onchange = async (ev) => {
+  const f = ev.target.files[0];
+  if (!f) return;
+  const b = new Uint8Array(await f.arrayBuffer());
+  const h = sidHeader(b);
+  if (!h) { state.sid = null; showSid($('#d-sid-local'), null); toast(`${f.name}: not a SID file`, true); setBusy(state.busy); return; }
+  state.sid = b;
+  showSid($('#d-sid-local'), h, b.length);
+  setBusy(state.busy);
+};
+const readSidInfo = async () => {
+  const s = await state.link.sidInfo();
+  if (!s.present) { $('#d-sid-dev').replaceChildren(el('dt', { textContent: 'On the FM-1' }), el('dd', { textContent: 'no .SID' })); return; }
+  showSid($('#d-sid-dev'), s, s.size);
+  $('#d-sid-dev').prepend(el('dt', { textContent: 'On the FM-1' }), el('dd', { textContent: 'stored' }));
+};
+$('#d-sid-send').onclick = () => job('Send .SID', async () => {
+  const room = 69616;
+  if (state.sid.length > room) throw new Error(`the file is too big (${state.sid.length} bytes, ${room} at most)`);
+  await state.link.writeSid(state.sid, (d, t) => progress(d, t, 'SID'));
+  await readSidInfo();
+});
+$('#d-sid-info').onclick = () => job('Read .SID', readSidInfo);
 $('#d-play').onclick = () => job('Play', () => state.link.transport(true));
 $('#d-stop').onclick = () => job('Stop', () => state.link.transport(false));
 // Link test: each kind of request once, timed, so a report says where the replies stop
