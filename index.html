@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SLICE64-FM Editor</title>
+<meta name="description" content="Edit patterns, songs, instruments and samples for the SLICE64-FM firmware, and send them to the M-VAVE FM-1 over USB.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">SLICE64<span>-FM</span> <small>EDITOR</small></div>
+  <nav class="tabs" role="tablist">
+    <button data-tab="device" class="on">Device</button>
+    <button data-tab="song">Song</button>
+    <button data-tab="pattern">Pattern</button>
+    <button data-tab="instr">Instruments</button>
+    <button data-tab="samples">Samples</button>
+  </nav>
+  <div class="file">
+    <span id="link-pill" class="pill off">FM-1: not connected</span>
+    <button id="f-new" title="Empty song, no samples">New</button>
+    <button id="f-demo" title="The jungle demo and its break">Demo</button>
+    <button id="f-open" title="Open a .s64p project">Open</button>
+    <button id="f-save" title="Save the song and the samples as a .s64p file">Save file</button>
+    <input id="f-input" type="file" accept=".s64p" hidden>
+  </div>
+</header>
+
+<main>
+<!-- ================================================================ DEVICE -->
+<section id="tab-device" class="tab on">
+  <div class="cols">
+    <div class="card">
+      <h2>Connect</h2>
+      <p class="hint">Plug the FM-1 in USB, running the SLICE64-FM firmware (s1.3 or later). Chrome or Edge, then allow MIDI SysEx access.</p>
+      <button id="d-connect" class="big">Connect to the FM-1</button>
+      <div class="ports">
+        <label>MIDI out <select id="d-out"></select></label>
+        <label>MIDI in <select id="d-in"></select></label>
+      </div>
+      <dl id="d-info" class="info"></dl>
+    </div>
+    <div class="card">
+      <h2>Transfer</h2>
+      <div class="grid2">
+        <button id="d-send-all" class="big acc" disabled>Send song + samples</button>
+        <button id="d-send-song" disabled>Send song</button>
+        <button id="d-send-bank" disabled>Send samples</button>
+        <button id="d-read-song" disabled>Read song from FM-1</button>
+        <button id="d-read-bank" disabled>Read samples from FM-1</button>
+        <button id="d-save" disabled title="Keep the FM-1's current song after power-off">Save on the FM-1</button>
+        <button id="d-play" disabled>Play on the FM-1</button>
+        <button id="d-stop" disabled>Stop</button>
+      </div>
+      <div class="progress"><div id="d-bar"></div></div>
+      <div id="d-status" class="hint">Idle.</div>
+      <p class="hint">A song sent is stored in the FM-1's flash and stays after power-off. Samples go to their own flash bank (about 8 s at 32 kHz, 16 s at 16 kHz).</p>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Log</h2>
+    <pre id="d-log" class="log"></pre>
+  </div>
+</section>
+
+<!-- ================================================================ SONG -->
+<section id="tab-song" class="tab">
+  <div class="cols">
+    <div class="card">
+      <h2>Song</h2>
+      <div class="form">
+        <label>Name <input id="s-name" maxlength="15"></label>
+        <label>BPM <input id="s-bpm" type="number" min="40" max="250"></label>
+        <label>Speed <input id="s-speed" type="number" min="1" max="31" title="Ticks per row"></label>
+      </div>
+      <h3>Order <small id="s-ordinfo"></small></h3>
+      <div id="s-orders" class="orders"></div>
+      <div class="row">
+        <button id="o-add">Add</button>
+        <button id="o-ins">Insert</button>
+        <button id="o-del">Delete</button>
+        <button id="o-up">Move up</button>
+        <button id="o-down">Move down</button>
+        <button id="o-edit">Edit pattern</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Mixer</h2>
+      <div id="s-mixer" class="mixer"></div>
+      <h3>Send FX</h3>
+      <div class="form">
+        <label>Delay time <select id="s-dtime"></select></label>
+        <label>Delay feedback <input id="s-dfb" type="range" min="0" max="63"><output></output></label>
+        <label>Reverb size <input id="s-rsize" type="range" min="0" max="63"><output></output></label>
+        <label>Reverb damp <input id="s-rdamp" type="range" min="0" max="63"><output></output></label>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ PATTERN -->
+<section id="tab-pattern" class="tab">
+  <div class="toolbar">
+    <label>Pattern <select id="p-sel"></select></label>
+    <label>Length <select id="p-len"><option>16</option><option>32</option><option>64</option></select></label>
+    <label>Instrument <select id="p-instr"></select></label>
+    <label>Octave <input id="p-oct" type="number" min="0" max="7" value="3"></label>
+    <label>Step <input id="p-step" type="number" min="0" max="16" value="1"></label>
+    <span class="sep"></span>
+    <button id="p-copy">Copy</button>
+    <button id="p-paste">Paste</button>
+    <button id="p-clear">Clear</button>
+    <button id="p-tdown" title="Transpose the cursor track down a semitone (Shift: all tracks)">−1</button>
+    <button id="p-tup" title="Transpose the cursor track up a semitone (Shift: all tracks)">+1</button>
+    <button id="p-odown" title="Down an octave (Shift: all tracks)">−12</button>
+    <button id="p-oup" title="Up an octave (Shift: all tracks)">+12</button>
+  </div>
+  <div class="pattern-wrap">
+    <div id="p-grid" class="grid" tabindex="0"></div>
+    <aside class="help card">
+      <h3>Keys (grid focused)</h3>
+      <p><b>Arrows</b> move, <b>Tab</b> next track, <b>Page Up/Down</b> 16 rows.</p>
+      <p><b>Note column</b>: the computer keyboard is a piano, two rows (physical positions, QWERTY or AZERTY):<br>
+        bottom row from <kbd>Z</kbd>/<kbd>W</kbd> = octave, top row from <kbd>Q</kbd>/<kbd>A</kbd> = octave + 1.<br>
+        <kbd>`</kbd> or <kbd>=</kbd> note off.</p>
+      <p><b>Instrument / parameter</b>: hex digits. <b>FX</b>: 0 1 2 3 4 C F R S.</p>
+      <p><kbd>Delete</kbd> clears, <kbd>Insert</kbd>/<kbd>Backspace</kbd> push down / pull up the track.</p>
+      <h3>Effects</h3>
+      <dl id="p-fxhelp" class="fxhelp"></dl>
+    </aside>
+  </div>
+</section>
+
+<!-- ================================================================ INSTRUMENTS -->
+<section id="tab-instr" class="tab">
+  <div class="cols wide-right">
+    <div class="card">
+      <h2>Instruments</h2>
+      <ol id="i-list" class="ilist"></ol>
+    </div>
+    <div class="card">
+      <h2 id="i-title">Instrument</h2>
+      <div class="form">
+        <label>Name <input id="i-name" maxlength="8"></label>
+        <label>Preset <select id="i-preset"></select></label>
+        <button id="i-load">Load preset</button>
+        <button id="i-copy">Copy</button>
+        <button id="i-paste">Paste</button>
+      </div>
+      <div id="i-params" class="params"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ SAMPLES -->
+<section id="tab-samples" class="tab">
+  <div class="card">
+    <h2>Sample bank <small>8 slots, 8-bit, stored in the FM-1's flash</small></h2>
+    <div class="meter"><div id="b-meter"></div></div>
+    <div id="b-usage" class="hint"></div>
+    <p class="hint">Drop an audio file (WAV, MP3, OGG, FLAC…) on a slot. Drag on the waveform to trim (left button: start, right button or Shift: end). A SMP instrument plays the slot set in its SAMPLE parameter.</p>
+  </div>
+  <div id="b-slots" class="slots"></div>
+</section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

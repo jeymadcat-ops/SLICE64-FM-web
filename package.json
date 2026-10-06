@@ -1,0 +1,6 @@
+{
+  "name": "slice64-fm-web",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node test/link.test.mjs" }
+}
