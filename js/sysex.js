@@ -3,7 +3,7 @@
 // data = pack7 (groups of up to 7 bytes after a byte holding their top bits).
 
 export const CMD = { INFO: 1, SONG_READ: 2, SONG_BEGIN: 3, SONG_WRITE: 4, SONG_END: 5, SAVE: 6, TRANSPORT: 7,
-  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13 };
+  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13, SCREEN_ALL: 14 };
 export const RC_TEXT = ['ok', 'bad arguments', 'flash error', 'CRC mismatch', 'transfer not started', 'no flash'];
 export const CHUNK = 256;
 const HEAD = [0xF0, 0x7D, 0x53, 0x36];
@@ -59,8 +59,9 @@ export class Link {
 
   _frame(f) {
     if (f.length < 6 || f[0] !== 0xF0 || f[1] !== 0x7D || f[2] !== 0x53 || f[3] !== 0x36) return;
-    const p = this.pending;
-    if (p && f[4] === p.cmd) { this.pending = null; clearTimeout(p.timer); p.resolve(f.subarray(5, f.length - 1)); }
+    const p = this.pending, args = f.subarray(5, f.length - 1);
+    if (p && f[4] === p.cmd) { this.pending = null; clearTimeout(p.timer); p.resolve(args); }
+    else this.onPush?.(f[4], args);   // frames sent ahead of a reply (SCREEN_ALL's bands)
   }
 
   _once(cmd, args, timeout) {
@@ -146,6 +147,16 @@ export class Link {
     const a = await this.request(CMD.SCREEN, [reset ? 1 : 0], { timeout: 1500, tries: 1 });
     return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], band: a[16],
       data: a[16] === 127 ? null : unpack7(a, 17) };
+  }
+
+  // protocol 3: every changed band in one request (each as a SCREEN frame before the reply)
+  async screenAll(reset = false) {
+    const bands = [];
+    this.onPush = (cmd, a) => { if (cmd === CMD.SCREEN && a[16] !== 127) bands.push({ band: a[16], data: unpack7(a, 17) }); };
+    try {
+      const a = await this.request(CMD.SCREEN_ALL, [reset ? 1 : 0], { timeout: 2000, tries: 1 });
+      return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], sent: a[16], bands };
+    } finally { this.onPush = null; }
   }
 
   // data: the bank's 8-bit data; entries: 8 x 24 bytes (name[8], rate, off, len, 0, little endian)

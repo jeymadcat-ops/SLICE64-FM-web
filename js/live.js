@@ -40,6 +40,16 @@ export function decodeBand(d, rgba, offset) {
     else for (let i = 0; i < n; i++) put(i, pal[d[base + i]]);
     return;
   }
+  if (d[0] === 4) {   // palette + runs: (length - 1) << 4 | colour
+    const np = d[1], pal = [];
+    for (let k = 0; k < np; k++) pal.push(d[2 + 2 * k] | d[3 + 2 * k] << 8);
+    let i = 0;
+    for (let p = 2 + 2 * np; p < d.length && i < n; p++) {
+      const c = pal[d[p] & 15];
+      for (let r = (d[p] >> 4) + 1; r > 0 && i < n; r--) put(i++, c);
+    }
+    return;
+  }
   for (let i = 0; i < n; i++) {   // RGB332
     const v = d[1 + i], o = offset + i * 4;
     rgba[o] = (v & 0xE0) * 255 / 224; rgba[o + 1] = (v << 3 & 0xE0) * 255 / 224; rgba[o + 2] = (v & 3) * 85; rgba[o + 3] = 255;
@@ -67,8 +77,9 @@ export class Live {
     this.draw();
   }
 
-  async start(link) {
+  async start(link, proto = 2) {
     this.link = link;
+    this.proto = proto;
     if (this.running) return;
     this.running = true;
     this.img = this.lctx.createImageData(LCD, LCD);
@@ -76,6 +87,22 @@ export class Live {
     while (this.running) {
       if (!this.link || this.paused()) { await sleep(150); reset = true; continue; }
       let r;
+      if (this.proto >= 3) {   // the changed bands in one request
+        try { r = await this.link.screenAll(reset); }
+        catch (e) { this.status.textContent = 'No screen from the FM-1 (' + e.message + '), retrying…'; await sleep(500); reset = true; continue; }
+        reset = false;
+        this.lights = r;
+        for (const b of r.bands) {
+          decodeBand(b.data, this.img.data, b.band * LCD * BAND_ROWS * 4);
+          this.lctx.putImageData(this.img, 0, 0, 0, b.band * BAND_ROWS, LCD, BAND_ROWS);
+        }
+        if (r.sent) frames++;
+        this.draw();
+        if (!r.sent) await sleep(15);
+        const now = performance.now();
+        if (now - t0 > 1000) { this.status.textContent = `Live: ${frames} update${frames === 1 ? '' : 's'} / s`; frames = 0; t0 = now; }
+        continue;
+      }
       try { r = await this.link.screen(reset); }
       catch (e) { this.status.textContent = 'No screen from the FM-1 (' + e.message + '), retrying…'; await sleep(1000); reset = true; continue; }
       reset = false;

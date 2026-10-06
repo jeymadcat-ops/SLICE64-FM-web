@@ -454,8 +454,8 @@ async function connect() {
     $('#link-pill').textContent = `FM-1 ${info.version}`;
     $('#link-pill').className = 'pill on';
     log(`connected: ${out.name}, firmware ${info.version}`);
-    if (info.proto >= 2) live.start(state.link);
-    else { live.stop(); $('#l-status').textContent = `Firmware ${info.version} has no screen mirror: install s1.4 or later.`; }
+    if (info.proto >= 2) live.start(state.link, info.proto);
+    else { live.stop(); $('#l-status').textContent = `Firmware ${info.version} has no screen mirror: install s1.5 or later.`; }
     setBusy(false);
     renderUsage();
   } catch (e) {

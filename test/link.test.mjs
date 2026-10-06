@@ -83,6 +83,20 @@ try {
     console.log(`mirror: a full screen in ${polls} bands, ${(bytes / 1024).toFixed(1)} KB, ${Date.now() - t0} ms on the stand-in`);
   }
 
+  // protocol 3: SCREEN_ALL, the whole screen in a few requests
+  {
+    const rgba = new Uint8ClampedArray(LCD * LCD * 4), seen = new Set();
+    let calls = 0, r = await link.screenAll(true);
+    for (;;) {
+      calls++;
+      for (const b of r.bands) { decodeBand(b.data, rgba, b.band * LCD * BAND_ROWS * 4); seen.add(b.band); }
+      if (!r.sent || calls > 40) break;
+      r = await link.screenAll(false);
+    }
+    check(seen.size === BANDS && r.sent === 0, 'screenAll: every band (' + seen.size + ')');
+    console.log(`screenAll: a full screen in ${calls - 1} requests`);
+  }
+
   // SAVE stores what the device has now
   check(await link.transport(true) === true, 'play');
   check(await link.transport(false) === false, 'stop');
