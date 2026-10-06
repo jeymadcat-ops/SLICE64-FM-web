@@ -428,7 +428,7 @@ function fillPorts() {
   const pick = (sel, ports) => {
     const prev = sel.value;
     sel.replaceChildren(...[...ports.values()].map((p) => el('option', { value: p.id, textContent: p.name })));
-    const fm = [...ports.values()].find((p) => /fm-?1|m-?vave|slice/i.test(p.name));
+    const fm = [...ports.values()].find((p) => /slice|fm-?1|m-?vave|felucca/i.test(p.name));
     sel.value = [...ports.values()].some((p) => p.id === prev) ? prev : fm?.id ?? sel.value;
   };
   pick($('#d-out'), state.midi.outputs);
@@ -439,13 +439,28 @@ async function connect() {
   try {
     if (!state.midi) { state.midi = await midiAccess(); state.midi.onstatechange = () => fillPorts(); fillPorts(); }
     state.transport?.close();
-    const out = state.midi.outputs.get($('#d-out').value), inp = state.midi.inputs.get($('#d-in').value);
+    let out = state.midi.outputs.get($('#d-out').value), inp = state.midi.inputs.get($('#d-in').value);
     if (!out || !inp) throw new LinkError('no MIDI port: is the FM-1 plugged in?');
-    try { await inp.open(); await out.open(); }   // Windows: a port open in another program (a DAW, M-UPGRADE) refuses
-    catch { throw new LinkError(`the MIDI port ${out.name} is busy: close the other programs using it (music software, M-UPGRADE), then reload this page`); }
-    state.transport = new MidiTransport(inp, out);
-    state.link = new Link(state.transport);
-    const info = await state.link.info();
+    // the chosen pair first; if it is silent, every pair that looks like the FM-1 (Windows can list it
+    // under an old name too, "Felucca", a stale copy that goes nowhere)
+    const looks = (p) => /slice|fm-?1|m-?vave|felucca/i.test(p.name);
+    log(`MIDI out: ${[...state.midi.outputs.values()].map((p) => p.name).join(', ')} — MIDI in: ${[...state.midi.inputs.values()].map((p) => p.name).join(', ')}`);
+    const pairs = [[out, inp]];
+    for (const o of state.midi.outputs.values()) for (const i of state.midi.inputs.values())
+      if (looks(o) && looks(i) && !(o === out && i === inp)) pairs.push([o, i]);
+    let info = null, lastErr = null;
+    for (const [o, i] of pairs) {
+      try { await i.open(); await o.open(); }   // Windows: a port open in another program (a DAW, M-UPGRADE) refuses
+      catch { lastErr = new LinkError(`the MIDI port ${o.name} is busy: close the other programs using it (music software, M-UPGRADE), then reload this page`); continue; }
+      state.transport?.close();
+      state.transport = new MidiTransport(i, o);
+      state.link = new Link(state.transport);
+      try { info = await state.link.info({ timeout: 800, tries: 2 }); out = o; inp = i; break; }
+      catch (e) { lastErr = e; log(`no answer on ${o.name} → / ← ${i.name}`); }
+    }
+    if (!info) throw lastErr || new LinkError('no answer');
+    $('#d-out').value = out.id;
+    $('#d-in').value = inp.id;
     state.info = info;
     if (info.songBytes !== SONG_BYTES) throw new LinkError(`the FM-1 firmware uses another song format (${info.songBytes} bytes): update this page or the firmware`);
     $('#d-info').replaceChildren(
@@ -455,7 +470,7 @@ async function connect() {
       el('dt', { textContent: 'Sample bank' }), el('dd', { textContent: `${(info.bankBytes / 1024).toFixed(0)} KB` }));
     $('#link-pill').textContent = `FM-1 ${info.version}`;
     $('#link-pill').className = 'pill on';
-    log(`connected: ${out.name}, firmware ${info.version}`);
+    log(`connected: ${out.name} → / ← ${inp.name}, firmware ${info.version}`);
     if (info.proto >= 2) live.start(state.link, info.proto);
     if (info.proto < 4) log('The Live panel only mirrors with this firmware: install s1.6 or later to play the FM-1 from here.');
     else { live.stop(); $('#l-status').textContent = `Firmware ${info.version} has no screen mirror: install s1.6 or later.`; }

@@ -91,8 +91,8 @@ export class Link {
     if (rc !== 0) throw new LinkError(`${what}: ${RC_TEXT[rc] || 'error ' + rc}`);
   }
 
-  async info() {
-    const a = await this.request(CMD.INFO);
+  async info(opts) {
+    const a = await this.request(CMD.INFO, [], opts);
     let s = '';
     for (let i = 13; i < a.length && a[i]; i++) s += String.fromCharCode(a[i]);
     return { proto: a[0], flash: !!(a[1] & 1), songBytes: getU32(a, 2), bankBytes: getU32(a, 7), samples: a[12], version: s };
