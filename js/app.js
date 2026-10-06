@@ -416,7 +416,7 @@ function renderSamples() {
 function setBusy(b) {
   state.busy = b;
   const ok = !!state.link && !b;
-  for (const id of ['#d-send-all', '#d-send-song', '#d-send-bank', '#d-read-song', '#d-read-bank', '#d-save', '#d-play', '#d-stop'])
+  for (const id of ['#d-send-all', '#d-send-song', '#d-send-bank', '#d-read-song', '#d-read-bank', '#d-save', '#d-play', '#d-stop', '#d-test'])
     $(id).disabled = !ok;
 }
 function progress(done, total, what) {
@@ -502,6 +502,24 @@ $('#d-read-bank').onclick = () => job('Read samples', async () => {
 $('#d-save').onclick = () => job('Save on the FM-1', () => state.link.save());
 $('#d-play').onclick = () => job('Play', () => state.link.transport(true));
 $('#d-stop').onclick = () => job('Stop', () => state.link.transport(false));
+// Link test: each kind of request once, timed, so a report says where the replies stop
+$('#d-test').onclick = () => job('Test link', async () => {
+  const L = state.link, proto = state.info?.proto || 0;
+  const step = async (name, fn) => {
+    const t0 = performance.now();
+    try { const r = await fn(); log(`test ${name}: ok in ${Math.round(performance.now() - t0)} ms${r ? ' — ' + r : ''}`); return true; }
+    catch (e) { log(`test ${name}: FAILED after ${Math.round(performance.now() - t0)} ms — ${e.message}`); return false; }
+  };
+  live.stop();
+  log(`test: firmware ${state.info?.version}, protocol ${proto}, ports ${$('#d-out').selectedOptions[0]?.textContent} / ${$('#d-in').selectedOptions[0]?.textContent}`);
+  await step('INFO', async () => (await L.info()).version);
+  if (proto >= 2) await step('SCREEN (one band)', async () => { const r = await L.screen(true); return r.band === 127 ? 'no band' : `band ${r.band}, ${r.data.length} bytes`; });
+  if (proto >= 2) await step('SCREEN again', async () => { const r = await L.screen(false); return r.band === 127 ? 'no band' : `band ${r.band}, ${r.data.length} bytes`; });
+  if (proto >= 5) await step('SCREEN_PACK', async () => { const r = await L.screenPack(true); return `${r.sent} bands, ${r.bands.reduce((n, b) => n + b.data.length, 0)} bytes`; });
+  if (proto >= 4) await step('INPUT (no-op knob)', async () => { const r = await L.input(2, 0, 0); return `lit ${r.lit.toString(16)}`; });
+  await step('INFO again', async () => (await L.info()).version);
+  if (proto >= 2) live.start(L, proto);
+});
 
 /* --------------------------------------------------------------- start */
 
