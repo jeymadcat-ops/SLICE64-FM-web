@@ -189,59 +189,53 @@ export class Live {
     this.draw();
   }
 
+  // One loop at a time (a new start retires the old one), and paced: Windows' MIDI input is read
+  // more slowly than the FM-1 can answer; a request every few ms floods it, frames get lost and the
+  // port stops delivering anything. At most ~20 screen requests a second, fewer while nothing changes.
   async start(link, proto = 2) {
     this.releaseAll();
     this.link = link;
     this.proto = proto;
     this.cv.style.cursor = proto >= 4 ? 'pointer' : 'default';
-    if (this.running) return;
+    const id = (this.loopId = (this.loopId || 0) + 1);
     this.running = true;
     this.img = this.lctx.createImageData(LCD, LCD);
-    let reset = true, bands = 0, t0 = performance.now(), frames = 0, allFails = 0;
-    // SCREEN_PACK (protocol 5, firmware s2.2+): the changed bands in one capped frame. SCREEN_ALL's
-    // back-to-back frames make Windows' MIDI input stop reading the port: never used, one band a
-    // request with older firmware instead.
+    let reset = true, bands = 0, t0 = performance.now(), frames = 0, fails = 0, last = 0;
+    // SCREEN_PACK (protocol 5, firmware s2.2+): the changed bands in one capped frame; older firmware:
+    // one band a request (SCREEN_ALL's back-to-back frames are never used)
     this.burst = proto >= 5;
-    while (this.running) {
+    const alive = () => this.running && this.loopId === id;
+    while (alive()) {
       if (!this.link || this.paused()) { await sleep(150); reset = true; continue; }
+      const wait = last + MIN_GAP - performance.now();
+      if (wait > 0) await sleep(wait);
+      last = performance.now();
       let r;
-      if (this.burst) {   // the changed bands in one request
-        try { r = await this.link.screenPack(reset); allFails = 0; }
-        catch (e) {
-          if (++allFails >= 2) { this.burst = false; this.status.textContent = 'Live: one band a request (slower)'; }
-          else { this.status.textContent = 'No screen from the FM-1 (' + e.message + '), retrying…'; await sleep(300); }
-          reset = true;
-          continue;
-        }
-        reset = false;
-        this.lights = r;
-        for (const b of r.bands) {
-          decodeBand(b.data, this.img.data, b.band * LCD * BAND_ROWS * 4);
-          this.lctx.putImageData(this.img, 0, 0, 0, b.band * BAND_ROWS, LCD, BAND_ROWS);
-        }
-        if (r.sent) frames++;
-        this.draw();
-        if (!r.sent) await sleep(15);
-        const now = performance.now();
-        if (now - t0 > 1000) { this.status.textContent = `Live: ${frames} update${frames === 1 ? '' : 's'} / s`; frames = 0; t0 = now; }
+      try { r = await (this.burst ? this.link.screenPack(reset) : this.link.screen(reset)); fails = 0; }
+      catch (e) {
+        if (this.burst && ++fails >= 3) { this.burst = false; fails = 0; }
+        this.status.textContent = 'No screen from the FM-1 (' + e.message + '), retrying…';
+        await sleep(500);
+        reset = true;
         continue;
       }
-      try { r = await this.link.screen(reset); }
-      catch (e) { this.status.textContent = 'No screen from the FM-1 (' + e.message + '), retrying…'; await sleep(1000); reset = true; continue; }
+      if (!alive()) break;
       reset = false;
       this.lights = r;
-      if (r.band !== 127) {
-        decodeBand(r.data, this.img.data, r.band * LCD * BAND_ROWS * 4);
-        this.lctx.putImageData(this.img, 0, 0, 0, r.band * BAND_ROWS, LCD, BAND_ROWS);
-        bands++;
-      } else {
+      const list = this.burst ? r.bands : r.band !== 127 ? [{ band: r.band, data: r.data }] : [];
+      for (const b of list) {
+        decodeBand(b.data, this.img.data, b.band * LCD * BAND_ROWS * 4);
+        this.lctx.putImageData(this.img, 0, 0, 0, b.band * BAND_ROWS, LCD, BAND_ROWS);
+      }
+      bands += list.length;
+      if (!list.length || this.burst) {
         if (bands) frames++;
         bands = 0;
         this.draw();
-        await sleep(25);
       }
+      if (!list.length) await sleep(IDLE_GAP);   // a still screen: look again a little later
       const now = performance.now();
-      if (now - t0 > 1000) { this.status.textContent = `Live: ${frames} screen update${frames === 1 ? '' : 's'} / s`; frames = 0; t0 = now; }
+      if (now - t0 > 1000) { this.status.textContent = `Live: ${frames} update${frames === 1 ? '' : 's'} / s`; frames = 0; t0 = now; }
     }
   }
   stop() { this.releaseAll(); this.running = false; }
@@ -288,6 +282,7 @@ export class Live {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const MIN_GAP = 50, IDLE_GAP = 120;   // ms between screen requests / after a still screen
 function rr(g, x, y, w, h, r, fill, stroke, lw = 1) {
   g.beginPath(); g.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
   g.fillStyle = fill; g.fill();
