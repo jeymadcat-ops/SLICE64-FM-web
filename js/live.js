@@ -273,7 +273,7 @@ export class Live {
     rr(g, KB.x, KB.y, KB.w, KB.h, 18, '#26282c');
     for (let k = 0; k < 27; k++) {
       const [x, y, kw, kh, white] = keyRect(k), on = L.keys >> k & 1, held = this.held.has('k' + k);
-      rr(g, x, y, kw, kh, kw / 2, on || held ? (white ? accent : mix('#000', accent, 0.75)) : white ? '#d9dadc' : '#c9cacd',
+      rr(g, x, y, kw, kh, kw / 2, on || held ? (white ? accent : mix('#000000', accent, 0.75)) : white ? '#d9dadc' : '#c9cacd',
         held ? '#ffffff' : null, 3);
     }
     g.imageSmoothingEnabled = false;
@@ -298,7 +298,9 @@ function text(g, s, x, y, size, color, weight = 400) {
   g.fillText(s, x, y);
 }
 function mix(a, b, t) {   // a and b: '#rrggbb' or 'rgb(r,g,b)'
-  const p = (c) => c.startsWith('#') ? [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)) : c.match(/\d+/g).map(Number);
+  const p = (c) => c.startsWith('#')
+    ? (c.length === 4 ? [...c.slice(1)].map((h) => parseInt(h + h, 16)) : [1, 3, 5].map((i) => parseInt(c.slice(i, i + 2), 16)))
+    : c.match(/\d+/g).map(Number);   // #rgb, #rrggbb or rgb(r,g,b)
   const x = p(a), y = p(b);
   return `rgb(${x.map((v, i) => Math.round(v + (y[i] - v) * t)).join(',')})`;
 }
