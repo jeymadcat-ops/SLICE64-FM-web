@@ -441,6 +441,8 @@ async function connect() {
     state.transport?.close();
     const out = state.midi.outputs.get($('#d-out').value), inp = state.midi.inputs.get($('#d-in').value);
     if (!out || !inp) throw new LinkError('no MIDI port: is the FM-1 plugged in?');
+    try { await inp.open(); await out.open(); }   // Windows: a port open in another program (a DAW, M-UPGRADE) refuses
+    catch { throw new LinkError(`the MIDI port ${out.name} is busy: close the other programs using it (music software, M-UPGRADE), then reload this page`); }
     state.transport = new MidiTransport(inp, out);
     state.link = new Link(state.transport);
     const info = await state.link.info();
@@ -465,7 +467,8 @@ async function connect() {
     $('#link-pill').textContent = 'FM-1: not connected';
     $('#link-pill').className = 'pill off';
     const msg = e instanceof LinkError ? e.message : e.name === 'SecurityError' ? 'MIDI SysEx access was refused' : (e.message || String(e));
-    log('connect: ' + msg + (e instanceof LinkError && /no answer/.test(msg) ? ' (is the SLICE64-FM firmware s1.3+ installed?)' : ''));
+    log('connect: ' + msg + (e instanceof LinkError && /no answer/.test(msg)
+      ? ' (is the SLICE64-FM firmware s1.3+ installed? Is the port open in another program: a music software, M-UPGRADE? Pick the SLICE64-FM ports above.)' : ''));
     toast(msg, true);
   }
 }
