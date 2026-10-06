@@ -203,7 +203,7 @@ export class Live {
       if (!this.link || this.paused()) { await sleep(150); reset = true; continue; }
       let r;
       if (this.burst) {   // the changed bands in one request
-        try { r = await this.link.screenAll(reset); allFails = 0; }
+        try { r = await (this.proto >= 5 ? this.link.screenPack(reset) : this.link.screenAll(reset)); allFails = 0; }
         catch (e) {
           if (++allFails >= 2) { this.burst = false; this.status.textContent = 'Live: one band a request (slower)'; }
           else { this.status.textContent = 'No screen from the FM-1 (' + e.message + '), retrying…'; await sleep(300); }

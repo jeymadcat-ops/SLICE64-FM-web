@@ -97,6 +97,20 @@ try {
     console.log(`screenAll: a full screen in ${calls - 1} requests`);
   }
 
+  // protocol 5: SCREEN_PACK, the changed bands in one frame
+  {
+    const rgba = new Uint8ClampedArray(LCD * LCD * 4), seen = new Set();
+    let frames = 0, r = await link.screenPack(true);
+    for (;;) {
+      frames++;
+      for (const b of r.bands) { decodeBand(b.data, rgba, b.band * LCD * BAND_ROWS * 4); seen.add(b.band); }
+      if (!r.sent || frames > 40) break;
+      r = await link.screenPack(false);
+    }
+    check(seen.size === BANDS, 'screenPack: every band (' + seen.size + ')');
+    console.log(`screenPack: a full screen in ${frames - 1} frames`);
+  }
+
   // protocol 4: the panel plays the device
   {
     let l = await link.input(0, 9, 1);                       // SEQ held: the SONG page, SEQ lit

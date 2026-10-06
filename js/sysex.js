@@ -3,7 +3,7 @@
 // data = pack7 (groups of up to 7 bytes after a byte holding their top bits).
 
 export const CMD = { INFO: 1, SONG_READ: 2, SONG_BEGIN: 3, SONG_WRITE: 4, SONG_END: 5, SAVE: 6, TRANSPORT: 7,
-  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13, SCREEN_ALL: 14, INPUT: 15 };
+  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13, SCREEN_ALL: 14, INPUT: 15, SCREEN_PACK: 16 };
 export const RC_TEXT = ['ok', 'bad arguments', 'flash error', 'CRC mismatch', 'transfer not started', 'no flash'];
 export const CHUNK = 256;
 const HEAD = [0xF0, 0x7D, 0x53, 0x36];
@@ -157,6 +157,19 @@ export class Link {
       const a = await this.request(CMD.SCREEN_ALL, [reset ? 1 : 0], { timeout: 2000, tries: 1 });
       return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], sent: a[16], bands };
     } finally { this.onPush = null; }
+  }
+
+  // protocol 5: the changed bands in ONE frame (Windows' MIDI stack loses back-to-back SysEx)
+  async screenPack(reset = false) {
+    const a = await this.request(CMD.SCREEN_PACK, [reset ? 1 : 0], { timeout: 2000, tries: 1 });
+    const bands = [];
+    let p = 17;
+    for (let k = 0; k < a[16] && p < a.length; k++) {
+      const band = a[p], len = a[p + 1] | a[p + 2] << 7, packed = len + Math.ceil(len / 7);
+      bands.push({ band, data: unpack7(a, p + 3, p + 3 + packed) });
+      p += 3 + packed;
+    }
+    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], sent: bands.length, bands };
   }
 
   // protocol 4: the editor's panel plays the FM-1 (kind 0 button, 1 key, 2 knob; value 1/0 or steps)
