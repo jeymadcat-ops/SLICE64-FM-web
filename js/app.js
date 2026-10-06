@@ -63,7 +63,7 @@ document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
   if (b.dataset.tab === 'pattern') $('#p-grid').focus();
-  if (b.dataset.tab === 'live') live.draw();
+  if (b.dataset.tab === 'live') live.draw(); else live.releaseAll();
   history.replaceState(null, '', '#' + b.dataset.tab);
 });
 
@@ -455,7 +455,8 @@ async function connect() {
     $('#link-pill').className = 'pill on';
     log(`connected: ${out.name}, firmware ${info.version}`);
     if (info.proto >= 2) live.start(state.link, info.proto);
-    else { live.stop(); $('#l-status').textContent = `Firmware ${info.version} has no screen mirror: install s1.5 or later.`; }
+    if (info.proto < 4) log('The Live panel only mirrors with this firmware: install s1.6 or later to play the FM-1 from here.');
+    else { live.stop(); $('#l-status').textContent = `Firmware ${info.version} has no screen mirror: install s1.6 or later.`; }
     setBusy(false);
     renderUsage();
   } catch (e) {

@@ -3,7 +3,7 @@
 // data = pack7 (groups of up to 7 bytes after a byte holding their top bits).
 
 export const CMD = { INFO: 1, SONG_READ: 2, SONG_BEGIN: 3, SONG_WRITE: 4, SONG_END: 5, SAVE: 6, TRANSPORT: 7,
-  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13, SCREEN_ALL: 14 };
+  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13, SCREEN_ALL: 14, INPUT: 15 };
 export const RC_TEXT = ['ok', 'bad arguments', 'flash error', 'CRC mismatch', 'transfer not started', 'no flash'];
 export const CHUNK = 256;
 const HEAD = [0xF0, 0x7D, 0x53, 0x36];
@@ -157,6 +157,12 @@ export class Link {
       const a = await this.request(CMD.SCREEN_ALL, [reset ? 1 : 0], { timeout: 2000, tries: 1 });
       return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], sent: a[16], bands };
     } finally { this.onPush = null; }
+  }
+
+  // protocol 4: the editor's panel plays the FM-1 (kind 0 button, 1 key, 2 knob; value 1/0 or steps)
+  async input(kind, id, value) {
+    const a = await this.request(CMD.INPUT, [kind, id, ...u14(value + 8192)], { timeout: 800, tries: 3 });
+    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15] };
   }
 
   // data: the bank's 8-bit data; entries: 8 x 24 bytes (name[8], rate, off, len, 0, little endian)
