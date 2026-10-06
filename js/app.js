@@ -18,6 +18,7 @@ const state = {
 state.bank.loadDemo();
 const live = new Live($('#l-panel'), $('#l-status'));
 live.paused = () => state.busy || !$('#tab-live').classList.contains('on');
+live.bindKeyboard(() => $('#tab-live').classList.contains('on'));
 
 /* --------------------------------------------------------------- general */
 

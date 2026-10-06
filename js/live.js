@@ -86,6 +86,43 @@ export class Live {
 
   get interactive() { return !!this.link && this.proto >= 4; }
 
+  // The computer keyboard plays the FM-1 too, as in the SLICE64-FM Windows emulator (physical key
+  // positions, so QWERTY and AZERTY alike). active(): the Live tab is shown.
+  bindKeyboard(active) {
+    const BTN = { Space: 10, Enter: 11, NumpadEnter: 11, Escape: 6, Delete: 8, ShiftLeft: 1, ShiftRight: 1,
+      F1: 6, F2: 4, F3: 5, F4: 0, F5: 9, KeyZ: 12, KeyX: 13 };
+    const WHITE = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26];
+    const BLACK = [1, 3, 5, 8, 10, 13, 15, 17, 20, 22, 25];
+    const KEY = {};
+    'QWERTYUI'.split('').forEach((c, i) => { KEY['Key' + c] = WHITE[i]; });
+    'ASDFGHJK'.split('').forEach((c, i) => { KEY['Key' + c] = WHITE[8 + i]; });
+    ['Digit1', 'Digit2', 'Digit3', 'Digit4', 'Digit5', 'Digit6', 'Digit7', 'Digit8', 'Digit9', 'Digit0', 'Minus']
+      .forEach((c, i) => { KEY[c] = BLACK[i]; });
+    const KNOB = { PageUp: [4, 1], PageDown: [4, -1], Home: [5, 1], End: [5, -1], NumpadAdd: [6, 1], NumpadSubtract: [6, -1],
+      NumpadMultiply: [7, 1], NumpadDivide: [7, -1] };
+    const usable = (e) => active() && this.interactive && !e.ctrlKey && !e.metaKey && !e.altKey &&
+      !(e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement);
+    document.addEventListener('keydown', (e) => {
+      if (!usable(e)) return;
+      const track = (this.lights.lit >> 6) & 1;          // HOME lit: the TRACK page (arrows as the cursor goes)
+      const ARROW = { ArrowUp: [track ? 3 : 1, -1], ArrowDown: [track ? 3 : 1, 1], ArrowLeft: [track ? 1 : 3, -1], ArrowRight: [track ? 1 : 3, 1] };
+      let done = true;
+      if (e.code in ARROW) this._turn(...ARROW[e.code]);
+      else if (e.code in KNOB) this._turn(...KNOB[e.code]);
+      else if (e.code === 'Tab') this._turn(2, e.shiftKey ? -1 : 1);
+      else if (e.code === 'Backspace') { if (!e.repeat) { this._press('b1', true); this._press('b8', true); this._press('b8', false); this._press('b1', false); } }
+      else if (e.code in BTN) { if (!e.repeat) this._press('b' + BTN[e.code], true); }
+      else if (e.code in KEY) { if (!e.repeat) this._press('k' + KEY[e.code], true); }
+      else done = false;
+      if (done) e.preventDefault();
+    });
+    document.addEventListener('keyup', (e) => {
+      if (!this.interactive) return;
+      if (e.code in BTN) this._press('b' + BTN[e.code], false);
+      else if (e.code in KEY) this._press('k' + KEY[e.code], false);
+    });
+  }
+
   _send(kind, id, value) {
     if (!this.interactive) return;
     const link = this.link;
