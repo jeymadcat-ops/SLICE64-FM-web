@@ -12,6 +12,7 @@
   <div class="brand">SLICE64<span>-FM</span> <small>EDITOR</small></div>
   <nav class="tabs" role="tablist">
     <button data-tab="device" class="on">Device</button>
+    <button data-tab="live">Live</button>
     <button data-tab="song">Song</button>
     <button data-tab="pattern">Pattern</button>
     <button data-tab="instr">Instruments</button>
@@ -61,6 +62,15 @@
   <div class="card">
     <h2>Log</h2>
     <pre id="d-log" class="log"></pre>
+  </div>
+</section>
+
+<!-- ================================================================ LIVE -->
+<section id="tab-live" class="tab">
+  <div class="card live">
+    <h2>FM-1 live <small id="l-status">Connect the FM-1 (Device tab) to see its screen here.</small></h2>
+    <canvas id="l-panel"></canvas>
+    <p class="hint">The FM-1's own screen and lights, as they change (firmware s1.4 or later). Only what changes is sent, so a still screen costs nothing; a full redraw takes a moment. The knobs are drawn, not mirrored.</p>
   </div>
 </section>
 

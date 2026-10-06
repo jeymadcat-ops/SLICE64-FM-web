@@ -2,6 +2,7 @@ import { Song, TRACKS, PATTERNS, INSTRS, SAMPLES, NOTE_OFF, ENGINES, FX_LIST, FX
 import { PRESETS, SONG_BYTES } from './data.js';
 import { Bank, RATES, decodeFile, render, play, projectFile, readProject } from './bank.js';
 import { Link, MidiTransport, midiAccess, LinkError } from './sysex.js';
+import { Live } from './live.js';
 
 const $ = (s) => document.querySelector(s);
 const el = (tag, props = {}, ...kids) => { const e = Object.assign(document.createElement(tag), props); e.append(...kids); return e; };
@@ -15,6 +16,8 @@ const state = {
   midi: null, transport: null, link: null, info: null, audio: null, busy: false,
 };
 state.bank.loadDemo();
+const live = new Live($('#l-panel'), $('#l-status'));
+live.paused = () => state.busy || !$('#tab-live').classList.contains('on');
 
 /* --------------------------------------------------------------- general */
 
@@ -60,6 +63,7 @@ document.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('on', x === b));
   document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('on', t.id === 'tab-' + b.dataset.tab));
   if (b.dataset.tab === 'pattern') $('#p-grid').focus();
+  if (b.dataset.tab === 'live') live.draw();
   history.replaceState(null, '', '#' + b.dataset.tab);
 });
 
@@ -450,6 +454,8 @@ async function connect() {
     $('#link-pill').textContent = `FM-1 ${info.version}`;
     $('#link-pill').className = 'pill on';
     log(`connected: ${out.name}, firmware ${info.version}`);
+    if (info.proto >= 2) live.start(state.link);
+    else { live.stop(); $('#l-status').textContent = `Firmware ${info.version} has no screen mirror: install s1.4 or later.`; }
     setBusy(false);
     renderUsage();
   } catch (e) {

@@ -3,7 +3,7 @@
 // data = pack7 (groups of up to 7 bytes after a byte holding their top bits).
 
 export const CMD = { INFO: 1, SONG_READ: 2, SONG_BEGIN: 3, SONG_WRITE: 4, SONG_END: 5, SAVE: 6, TRANSPORT: 7,
-  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12 };
+  BANK_INFO: 8, BANK_BEGIN: 9, BANK_WRITE: 10, BANK_END: 11, BANK_READ: 12, SCREEN: 13 };
 export const RC_TEXT = ['ok', 'bad arguments', 'flash error', 'CRC mismatch', 'transfer not started', 'no flash'];
 export const CHUNK = 256;
 const HEAD = [0xF0, 0x7D, 0x53, 0x36];
@@ -139,6 +139,13 @@ export class Link {
       i += 10;
     }
     return { dataLen: getU32(a, 1), slots };
+  }
+
+  // screen mirror (protocol 2): the next changed band of 8 rows, and the panel lights
+  async screen(reset = false) {
+    const a = await this.request(CMD.SCREEN, [reset ? 1 : 0], { timeout: 1500, tries: 1 });
+    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], band: a[16],
+      data: a[16] === 127 ? null : unpack7(a, 17) };
   }
 
   // data: the bank's 8-bit data; entries: 8 x 24 bytes (name[8], rate, off, len, 0, little endian)

@@ -7,6 +7,7 @@ import { Link } from '../js/sysex.js';
 import { Song } from '../js/song.js';
 import { Bank } from '../js/bank.js';
 import { SONG_BYTES } from '../js/data.js';
+import { decodeBand, BANDS, LCD, BAND_ROWS } from '../js/live.js';
 
 const HOST = process.env.S64_HOST || '../SLICE64-FM/build/Release/fm1_link_host.exe';
 let fails = 0;
@@ -28,7 +29,7 @@ const powerCycle = () => new Promise((r) => { booted = r; proc.stdin.write('BOOT
 const link = new Link(transport);
 try {
   const info = await link.info();
-  check(info.proto === 1 && info.flash && info.songBytes === SONG_BYTES && info.samples === 8 && info.version === 'host-sim', 'INFO ' + JSON.stringify(info));
+  check(info.proto >= 2 && info.flash && info.songBytes === SONG_BYTES && info.samples === 8 && info.version === 'host-sim', 'INFO ' + JSON.stringify(info));
 
   // read the device's song, change it in the editor model, send it, read it back
   const dev = new Song(await link.readSong(SONG_BYTES));
@@ -65,6 +66,22 @@ try {
   await powerCycle();
   check(Buffer.compare(Buffer.from(await link.readSong(SONG_BYTES)), Buffer.from(s.b)) === 0, 'song after power cycle');
   check((await link.bankInfo()).slots[3].len === 5000, 'bank after power cycle');
+
+  // the screen mirror: every band once, then nothing while the screen stays
+  {
+    const rgba = new Uint8ClampedArray(LCD * LCD * 4), seen = new Set();
+    let r = await link.screen(true), polls = 0, bytes = 0;
+    const t0 = Date.now();
+    while (r.band !== 127 && polls < 100) {
+      decodeBand(r.data, rgba, r.band * LCD * BAND_ROWS * 4);
+      seen.add(r.band); bytes += r.data.length; polls++;
+      r = await link.screen(false);
+    }
+    check(seen.size === BANDS, 'mirror: all bands (' + seen.size + ')');
+    check(rgba.some((v, i) => i % 4 !== 3 && v > 40), 'mirror: something drawn');
+    check(r.glow === 0x3FFF, 'mirror: the lights');
+    console.log(`mirror: a full screen in ${polls} bands, ${(bytes / 1024).toFixed(1)} KB, ${Date.now() - t0} ms on the stand-in`);
+  }
 
   // SAVE stores what the device has now
   check(await link.transport(true) === true, 'play');

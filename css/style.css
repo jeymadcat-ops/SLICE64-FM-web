@@ -55,6 +55,9 @@ body { overflow-x: hidden; }
 .progress div { height: 100%; width: 0; background: var(--acc); transition: width .1s; }
 .log { margin: 0; max-height: 220px; overflow: auto; font: 12px var(--mono); color: var(--dim); white-space: pre-wrap; }
 
+/* live */
+.live canvas { width: 100%; display: block; border-radius: 12px; }
+
 /* song */
 .orders { display: flex; flex-wrap: wrap; gap: 4px; }
 .orders .o { display: flex; flex-direction: column; align-items: center; border: 1px solid var(--line); border-radius: 6px; padding: 3px 4px; cursor: pointer; background: var(--bg); }
