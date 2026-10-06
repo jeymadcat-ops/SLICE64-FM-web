@@ -201,18 +201,20 @@ export class Live {
     this.running = true;
     this.img = this.lctx.createImageData(LCD, LCD);
     let reset = true, bands = 0, t0 = performance.now(), frames = 0, fails = 0, last = 0;
+    let gap = MIN_GAP;   // adaptive: shrinks while replies come quickly, doubles when one is late or lost
     // SCREEN_PACK (protocol 5, firmware s2.2+): the changed bands in one capped frame; older firmware:
     // one band a request (SCREEN_ALL's back-to-back frames are never used)
     this.burst = proto >= 5;
     const alive = () => this.running && this.loopId === id;
     while (alive()) {
       if (!this.link || this.paused()) { await sleep(150); reset = true; continue; }
-      const wait = last + MIN_GAP - performance.now();
+      const wait = last + gap - performance.now();
       if (wait > 0) await sleep(wait);
       last = performance.now();
       let r;
       try { r = await (this.burst ? this.link.screenPack(reset) : this.link.screen(reset)); fails = 0; }
       catch (e) {
+        gap = Math.min(MAX_GAP, gap * 2);
         if (this.burst && ++fails >= 3) { this.burst = false; fails = 0; }
         this.status.textContent = 'No screen from the FM-1 (' + e.message + '), retrying…';
         await sleep(500);
@@ -220,6 +222,10 @@ export class Live {
         continue;
       }
       if (!alive()) break;
+      {   // a reply that took long means the MIDI input is struggling: back off; else speed up again
+        const took = performance.now() - last;
+        gap = took > 250 ? Math.min(MAX_GAP, gap * 2) : Math.max(MIN_GAP, gap * 0.9);
+      }
       reset = false;
       this.lights = r;
       const list = this.burst ? r.bands : r.band !== 127 ? [{ band: r.band, data: r.data }] : [];
@@ -235,7 +241,7 @@ export class Live {
       }
       if (!list.length) await sleep(IDLE_GAP);   // a still screen: look again a little later
       const now = performance.now();
-      if (now - t0 > 1000) { this.status.textContent = `Live: ${frames} update${frames === 1 ? '' : 's'} / s`; frames = 0; t0 = now; }
+      if (now - t0 > 1000) { this.status.textContent = `Live: ${frames} update${frames === 1 ? '' : 's'} / s (pace ${Math.round(gap)} ms)`; frames = 0; t0 = now; }
     }
   }
   stop() { this.releaseAll(); this.running = false; }
@@ -282,7 +288,7 @@ export class Live {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const MIN_GAP = 50, IDLE_GAP = 120;   // ms between screen requests / after a still screen
+const MIN_GAP = 15, MAX_GAP = 200, IDLE_GAP = 40;   // ms between screen requests (adaptive) / after a still screen
 function rr(g, x, y, w, h, r, fill, stroke, lw = 1) {
   g.beginPath(); g.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
   g.fillStyle = fill; g.fill();
