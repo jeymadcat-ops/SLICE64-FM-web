@@ -467,7 +467,8 @@ async function connect() {
     $('#d-out').value = out.id;
     $('#d-in').value = inp.id;
     state.info = info;
-    if (info.songBytes !== SONG_BYTES) throw new LinkError(`the FM-1 firmware uses another song format (${info.songBytes} bytes): update this page or the firmware`);
+    // the song stream only grows: an older firmware takes its first songBytes, a newer one needs a newer page
+    if (info.songBytes > SONG_BYTES) throw new LinkError(`the FM-1 firmware is newer than this page (song ${info.songBytes} bytes): reload the page (Ctrl+F5)`);
     $('#d-info').replaceChildren(
       el('dt', { textContent: 'Firmware' }), el('dd', { textContent: info.version }),
       el('dt', { textContent: 'Protocol' }), el('dd', { textContent: info.proto }),
@@ -505,7 +506,7 @@ async function job(what, fn) {
   catch (e) { log(`${what}: ${e.message}`); toast(`${what}: ${e.message}`, true); $('#d-status').textContent = `${what}: failed`; }
   finally { setBusy(false); }
 }
-const sendSong = () => state.link.writeSong(state.song.b, (d, t) => progress(d, t, 'Song'));
+const sendSong = () => state.link.writeSong(state.song.b.subarray(0, state.info?.songBytes || SONG_BYTES), (d, t) => progress(d, t, 'Song'));
 const sendBank = async () => {
   if (state.bank.used > (state.info?.bankBytes || state.bank.capacity)) throw new Error('the samples do not fit: shorten them or lower a rate');
   const { data, entries } = state.bank.image();
@@ -515,7 +516,7 @@ $('#d-send-song').onclick = () => job('Send song', sendSong);
 $('#d-send-bank').onclick = () => job('Send samples', sendBank);
 $('#d-send-all').onclick = () => job('Send song + samples', async () => { await sendBank(); await sendSong(); });
 $('#d-read-song').onclick = () => job('Read song', async () => {
-  const b = await state.link.readSong(SONG_BYTES, (d, t) => progress(d, t, 'Song'));
+  const b = await state.link.readSong(state.info?.songBytes || SONG_BYTES, (d, t) => progress(d, t, 'Song'));
   state.song = new Song(b); refreshAll(); changed();
 });
 $('#d-read-bank').onclick = () => job('Read samples', async () => {
