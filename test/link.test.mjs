@@ -113,12 +113,14 @@ try {
 
   // protocol 4: the panel plays the device
   {
-    let l = await link.input(0, 9, 1);                       // SEQ held: the SONG page, SEQ lit
+    let l = await link.input(0, 9, 1);                       // SEQ held: the DRUM page, SEQ lit
     check(l.lit >> 9 & 1, 'input: SEQ lit');
     const th = l.theme;
     l = await link.input(2, 2, 1);                           // + PRESETS: the next theme
     check(l.theme === th + 1, 'input: SEQ + PRESETS theme');
     await link.input(0, 9, 0);
+    await link.input(0, 6, 1);                               // HOME: the tracker (the keys play notes there)
+    await link.input(0, 6, 0);
     l = await link.input(1, 7, 1);
     check(l.keys >> 7 & 1, 'input: key held');
     l = await link.input(1, 7, 0);
