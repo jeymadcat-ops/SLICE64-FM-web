@@ -1,5 +1,5 @@
 // The song as the FM-1 keeps it: the fixed byte stream of SLICE64-FM engine/fm1_song_io.h.
-import { SONG_BYTES, INSTR_BYTES, OFF_INSTR, OFF_PATTERN, ENGINE_DEFAULTS, PRESETS, NEW_SONG, DEMO_SONG, CHIP_SONG, TECHNO_SONG, ACID_SONG, GOA_SONG } from './data.js';
+import { SONG_BYTES, INSTR_BYTES, OFF_INSTR, OFF_PATTERN, ENGINE_DEFAULTS, PRESETS, NEW_SONG, DEMO_SONG, CHIP_SONG, TECHNO_SONG, ACID_SONG, GOA_SONG, NOVA_SONG } from './data.js';
 
 export const TRACKS = 4, ROWS = 64, PATTERNS = 32, ORDERS = 64, INSTRS = 32, SAMPLES = 8;
 export const PAT_BYTES = 1 + ROWS * TRACKS * 4;
@@ -87,6 +87,7 @@ export class Song {
   static techno() { return new Song(fromBase64(TECHNO_SONG)); }
   static acid() { return new Song(fromBase64(ACID_SONG)); }
   static goa() { return new Song(fromBase64(GOA_SONG)); }
+  static nova() { return new Song(fromBase64(NOVA_SONG)); }
   clone() { return new Song(this.b); }
 
   str(off, len) { let s = ''; for (let i = 0; i < len && this.b[off + i]; i++) s += String.fromCharCode(this.b[off + i]); return s; }
