@@ -72,6 +72,7 @@ $('#f-new').onclick = () => { if (!confirm('Start an empty song without samples?
 $('#f-demo').onclick = () => { if (!confirm('Load the jungle demo (song and samples)?')) return; state.song = Song.demo(); state.bank.loadDemo(); refreshAll(); changed(); };
 $('#f-chip').onclick = () => { if (!confirm('Load NIGHTFALL, the chiptune demo (synthesis only, the samples stay)?')) return; state.song = Song.chip(); state.pat = state.row = state.col = 0; refreshAll(); changed(); toast('NIGHTFALL loaded: Device > Send song to play it on the FM-1'); };
 $('#f-techno').onclick = () => { if (!confirm('Load KELLER, the techno demo (the TR and synthesis, the samples stay)?')) return; state.song = Song.techno(); state.pat = state.row = state.col = 0; refreshAll(); changed(); toast('KELLER loaded: Device > Send song to play it on the FM-1'); };
+$('#f-acid').onclick = () => { if (!confirm('Load BITROT, the glitchy acid demo (the TR and synthesis, the samples stay)?')) return; state.song = Song.acid(); state.pat = state.row = state.col = 0; refreshAll(); changed(); toast('BITROT loaded: Device > Send song to play it on the FM-1'); };
 $('#f-open').onclick = () => $('#f-input').click();
 $('#f-input').onchange = async (e) => {
   const f = e.target.files[0];
