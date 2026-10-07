@@ -10,6 +10,7 @@ export const FX_HELP = {
   '0': '0xy arpeggio: note, +x, +y semitones', '1': '1xx slide up (xx/16 semitone per tick)',
   '2': '2xx slide down', '3': '3xx portamento to the note, speed xx', '4': '4xy vibrato: x speed, y depth',
   'C': 'Cxx track volume 00..3F', 'F': 'Fxx below 20: speed (ticks per row), from 20: BPM',
+  'G': 'Gxx legato: glide from the note still holding, no new attack (00: the instrument glide)',
   'R': 'Rxx retrigger every xx ticks', 'S': 'Sxx sampler: play slice xx',
 };
 const NOTE_NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 'A#', 'B-'];
