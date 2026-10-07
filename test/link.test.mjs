@@ -144,7 +144,7 @@ try {
     await powerCycle();
     s = await link.sidInfo();
     check(s.present && s.name === 'WEB TEST', 'sid after power-on ' + JSON.stringify(s));
-    check((await link.info()).bankBytes === 188416, 'bank shrunk for the SID slot');
+    check((await link.info()).bankBytes === 184320, 'bank: 180 KB (the song slot grew for the TR)');
   }
 } catch (e) {
   fails++;

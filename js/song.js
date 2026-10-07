@@ -75,9 +75,11 @@ function MULTS() { return ['X0.5', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8
 const WAVE_BITS = [1, 2, 4, 8, 3, 5, 6, 7];
 
 export class Song {
+  // bytes: a song stream; an older, shorter one (version 1, no TR) keeps a new song's TR
   constructor(bytes) {
     this.b = new Uint8Array(SONG_BYTES);
-    if (bytes) this.b.set(bytes.subarray ? bytes.subarray(0, SONG_BYTES) : bytes);
+    this.b.set(fromBase64(NEW_SONG).subarray(0, SONG_BYTES));
+    if (bytes) this.b.set(bytes.subarray ? bytes.subarray(0, SONG_BYTES) : bytes.slice(0, SONG_BYTES));
   }
   static fresh() { return new Song(fromBase64(NEW_SONG)); }
   static demo() { return new Song(fromBase64(DEMO_SONG)); }
