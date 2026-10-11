@@ -32,7 +32,7 @@ writes a `.s64p` project (song + samples); the page also keeps your work in the 
 
 - `index.html`, `css/`, `js/app.js`: the page
 - `js/sysex.js`: the SysEx protocol (frames `F0 7D 53 36 cmd … F7`)
-- `js/song.js`: the song byte layout (38 956 bytes; the stream only grows, an older firmware takes its first bytes)
+- `js/song.js`: the song byte layout (39 140 bytes; the stream only grows, an older firmware takes its first bytes)
 - `js/bank.js`: samples, the bank image, `.s64p` files
 - `js/data.js`: generated from the SLICE64-FM engine (presets, defaults, demo): do not edit
 - `test/link.test.mjs`: the protocol against the firmware's own link code on a simulated flash
