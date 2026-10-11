@@ -1,5 +1,5 @@
 // The song as the FM-1 keeps it: the fixed byte stream of SLICE64-FM engine/fm1_song_io.h.
-import { SONG_BYTES, INSTR_BYTES, OFF_INSTR, OFF_PATTERN, ENGINE_DEFAULTS, PRESETS, NEW_SONG, DEMO_SONG, CHIP_SONG, TECHNO_SONG, ACID_SONG, GOA_SONG, NOVA_SONG } from './data.js';
+import { SONG_BYTES, INSTR_BYTES, OFF_INSTR, OFF_PATTERN, OFF_GRAIN, ENGINE_DEFAULTS, PRESETS, NEW_SONG, DEMO_SONG, CHIP_SONG, TECHNO_SONG, ACID_SONG, GOA_SONG, NOVA_SONG } from './data.js';
 
 export const TRACKS = 4, ROWS = 64, PATTERNS = 32, ORDERS = 64, INSTRS = 32, SAMPLES = 8;
 export const PAT_BYTES = 1 + ROWS * TRACKS * 4;
@@ -17,6 +17,9 @@ const NOTE_NAMES = ['C-', 'C#', 'D-', 'D#', 'E-', 'F-', 'F#', 'G-', 'G#', 'A-', 
 export const MIX_FIELDS = ['volume', 'mute', 'drive', 'dist', 'delay', 'reverb'];
 export const DIST_NAMES = ['SOFT', 'HARD', 'FOLD', 'CRUSH'];
 export const DELAY_TIMES = ['1/16', '1/8', '3/16', '1/4', '3/8', '1/2'];
+// the shared send as a granular processor (firmware s3.9 on): the delay's time is then the grain's size
+export const SEND_TYPES = ['DELAY', 'GRANULAR'];
+export const GRAIN_SIZES = ['40 ms', '70 ms', '110 ms', '180 ms', '300 ms', '500 ms'];
 
 export function noteName(n) {
   if (n === NOTE_OFF) return '===';
@@ -109,6 +112,9 @@ export class Song {
   get delayFb() { return this.b[43]; } set delayFb(v) { this.b[43] = clamp(v, 0, 63); }
   get revSize() { return this.b[44]; } set revSize(v) { this.b[44] = clamp(v, 0, 63); }
   get revDamp() { return this.b[45]; } set revDamp(v) { this.b[45] = clamp(v, 0, 63); }
+  get delayMode() { return this.b[OFF_GRAIN] === 1 ? 1 : 0; } set delayMode(v) { this.b[OFF_GRAIN] = clamp(v, 0, 1); }
+  get grainPitch() { return clamp(this.b[OFF_GRAIN + 1], 0, 24) - 12; } set grainPitch(v) { this.b[OFF_GRAIN + 1] = clamp(v, -12, 12) + 12; }
+  get grainSpread() { return this.b[OFF_GRAIN + 2]; } set grainSpread(v) { this.b[OFF_GRAIN + 2] = clamp(v, 0, 63); }
   get numOrders() { return this.b[46]; } set numOrders(v) { this.b[46] = clamp(v, 1, ORDERS); }
   order(i) { return this.b[47 + i]; }
   setOrder(i, p) { this.b[47 + i] = clamp(p, 0, PATTERNS - 1); }
@@ -142,7 +148,7 @@ export class Song {
 
   // patterns
   patOff(p) { return OFF_PATTERN + p * PAT_BYTES; }
-  patLen(p) { const l = this.b[this.patOff(p)]; return l === 16 || l === 64 ? l : 32; }
+  patLen(p) { const l = this.b[this.patOff(p)]; return l === 8 || l === 16 || l === 64 ? l : 32; }
   setPatLen(p, l) { this.b[this.patOff(p)] = l; }
   cellOff(p, r, t) { return this.patOff(p) + 1 + (r * TRACKS + t) * 4; }
   cell(p, r, t) { const o = this.cellOff(p, r, t); return { note: this.b[o], instr: this.b[o + 1], fx: this.b[o + 2], param: this.b[o + 3] }; }

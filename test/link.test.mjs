@@ -62,9 +62,19 @@ try {
   b2.fromDevice(bi, raw);
   check(b2.slots[3].data.length === 5000 && b2.slots[0].name === 'JUNGLE', 'bank back into the editor');
 
-  // the song and the samples survive a power cycle
+  // a power cycle: the samples come back by themselves; the project starts empty (firmware s4.4 on) and the
+  // stored song is loaded on request, as SEL+SAVE twice on the FM-1 does
   await powerCycle();
-  check(Buffer.compare(Buffer.from(await link.readSong(SONG_BYTES)), Buffer.from(s.b)) === 0, 'song after power cycle');
+  {
+    const after = new Song(await link.readSong(SONG_BYTES));
+    check(after.name === 'NEW SONG' && Buffer.compare(Buffer.from(after.b), Buffer.from(s.b)) !== 0, 'an empty project after power cycle');
+    const SEL = 1, SAVE = 7;
+    await link.input(0, SEL, 1);
+    await link.input(0, SAVE, 1); await link.input(0, SAVE, 0);
+    await link.input(0, SAVE, 1); await link.input(0, SAVE, 0);
+    await link.input(0, SEL, 0);
+    check(Buffer.compare(Buffer.from(await link.readSong(SONG_BYTES)), Buffer.from(s.b)) === 0, 'the stored song after SEL+SAVE twice');
+  }
   check((await link.bankInfo()).slots[3].len === 5000, 'bank after power cycle');
 
   // the screen mirror: every band once, then nothing while the screen stays

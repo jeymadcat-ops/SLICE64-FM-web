@@ -4,7 +4,7 @@ import { THEMES } from './data.js';
 
 export const LCD = 240, BAND_ROWS = 8, BANDS = LCD / BAND_ROWS;
 const BTN = ['FX', 'SEL', 'ENV', 'LFO', 'EDIT', 'GLO', 'HOME', 'SAVE', 'ARP', 'SEQ', 'PLAY', 'REC', 'OCT-', 'OCT+'];
-const BTN_FUNC = ['PERFORM', 'SHIFT', 'FILT/ENV', 'KNOBS', 'INSTR', 'MIXER', 'TRACK', 'SEL:LOAD', 'DELETE', 'SONG', '', '', '', ''];
+const BTN_FUNC = ['PERFORM', 'SHIFT', 'FILT/ENV', 'KNOBS', 'SOUND', 'MIXER', 'TRACK', 'SEL:LOAD', 'ARP / DEL', 'DRUM/BASS', '', '', '', ''];
 const KNOBS = [[105, 100, 24, 'MASTER'], [215, 100, 24, 'SELECT'], [105, 205, 24, 'PRESETS'], [215, 205, 24, 'ALGORITHM'],
   [610, 100, 22, 'KNOB1'], [714, 100, 22, 'KNOB2'], [818, 100, 22, 'KNOB3'], [922, 100, 22, 'KNOB4']];
 const WHITE = [0, 2, 4, 6, 7, 9, 11, 12, 14, 16, 18, 19, 21, 23, 24, 26];
@@ -104,8 +104,8 @@ export class Live {
       !(e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement);
     document.addEventListener('keydown', (e) => {
       if (!usable(e)) return;
-      const track = (this.lights.lit >> 6) & 1;          // HOME lit: the TRACK page (arrows as the cursor goes)
-      const ARROW = { ArrowUp: [track ? 3 : 1, -1], ArrowDown: [track ? 3 : 1, 1], ArrowLeft: [track ? 1 : 3, -1], ArrowRight: [track ? 1 : 3, 1] };
+      // on every page SELECT goes up / down and ALGORITHM left / right (since firmware s3.9)
+      const ARROW = { ArrowUp: [1, -1], ArrowDown: [1, 1], ArrowLeft: [3, -1], ArrowRight: [3, 1] };
       let done = true;
       if (e.code in ARROW) this._turn(...ARROW[e.code]);
       else if (e.code in KNOB) this._turn(...KNOB[e.code]);

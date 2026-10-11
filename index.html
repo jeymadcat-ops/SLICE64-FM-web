@@ -53,7 +53,7 @@
         <button id="d-send-all" class="big acc" disabled>Send song + samples</button>
         <button id="d-send-song" disabled>Send song</button>
         <button id="d-send-bank" disabled>Send samples</button>
-        <button id="d-read-song" disabled>Read song from FM-1</button>
+        <button id="d-read-song" disabled title="Reads the project the FM-1 has in memory now. After power-on that is an empty project (firmware s4.4 on): SEL+SAVE twice on the FM-1 loads the stored song first.">Read song from FM-1</button>
         <button id="d-read-bank" disabled>Read samples from FM-1</button>
         <button id="d-save" disabled title="Keep the FM-1's current song after power-off">Save on the FM-1</button>
         <button id="d-play" disabled>Play on the FM-1</button>
@@ -62,7 +62,7 @@
       </div>
       <div class="progress"><div id="d-bar"></div></div>
       <div id="d-status" class="hint">Idle.</div>
-      <p class="hint">A song sent is stored in the FM-1's flash and stays after power-off. Samples go to their own flash bank (about 6 s at 32 kHz, 12 s at 16 kHz).</p>
+      <p class="hint">A song sent is stored in the FM-1's flash and stays after power-off. From firmware s4.4 the FM-1 starts on an empty project: on the FM-1, SEL+SAVE twice loads the stored song. Samples go to their own flash bank (about 6 s at 32 kHz, 12 s at 16 kHz).</p>
     </div>
     <div class="card">
       <h2>SID player</h2>
@@ -88,7 +88,7 @@
     <h2>FM-1 live <small id="l-status">Connect the FM-1 (Device tab) to see its screen here.</small></h2>
     <canvas id="l-panel"></canvas>
     <p class="hint">The FM-1's own screen and lights, as they change. With firmware s1.6 the panel plays the FM-1 too: click or touch the buttons and keys (several fingers at once, slide across the keys), drag or scroll the knobs. Right-click or Shift-click a button to hold it (HOME + OCT, SEQ + PRESETS with a mouse); click it again to let go. MASTER stays on the device.</p>
-    <p class="hint"><b>Keyboard</b> (as in the Windows emulator): arrows move · Space PLAY · Enter REC · Esc HOME · Shift SEL · F1–F5 HOME EDIT GLO FX SEQ · Delete ARP · Backspace note off · Tab PRESETS · W / X OCT− / OCT+ · PgUp/PgDn K1 · Home/End K2 · + / − K3 · * / / K4 · the two letter rows A Z E R… / Q S D F… and the number row play the keys.</p>
+    <p class="hint"><b>Keyboard</b> (as in the Windows emulator): arrows: up / down SELECT, left / right ALGORITHM · Space PLAY · Enter REC · Esc HOME · Shift SEL · F1–F5 HOME EDIT GLO FX SEQ · Delete ARP · Backspace note off · Shift+Tab opens the preset bank (SEL + PRESETS), then Tab / Shift+Tab browse it · W / X OCT− / OCT+ · PgUp/PgDn K1 · Home/End K2 · + / − K3 · * / / K4 · the two letter rows A Z E R… / Q S D F… and the number row play the keys.</p>
   </div>
 </section>
 
@@ -118,11 +118,15 @@
       <div id="s-mixer" class="mixer"></div>
       <h3>Send FX</h3>
       <div class="form">
-        <label>Delay time <select id="s-dtime"></select></label>
-        <label>Delay feedback <input id="s-dfb" type="range" min="0" max="63"><output></output></label>
+        <label>Send type <select id="s-dmode"></select></label>
+        <label><span id="s-dtime-l">Delay time</span> <select id="s-dtime"></select></label>
+        <label><span id="s-dfb-l">Delay feedback</span> <input id="s-dfb" type="range" min="0" max="63"><output></output></label>
+        <label class="grain">Grain pitch <input id="s-gpitch" type="range" min="-12" max="12"><output></output></label>
+        <label class="grain">Grain spread <input id="s-gspread" type="range" min="0" max="63"><output></output></label>
         <label>Reverb size <input id="s-rsize" type="range" min="0" max="63"><output></output></label>
         <label>Reverb damp <input id="s-rdamp" type="range" min="0" max="63"><output></output></label>
       </div>
+      <p class="hint">GRANULAR (firmware s3.9 or later) cuts what the tracks send into grains and replays them scattered: the delay's time becomes the grain's size, its feedback the density. The ECHO effect keeps using the delay.</p>
     </div>
   </div>
 </section>
@@ -131,7 +135,7 @@
 <section id="tab-pattern" class="tab">
   <div class="toolbar">
     <label>Pattern <select id="p-sel"></select></label>
-    <label>Length <select id="p-len"><option>16</option><option>32</option><option>64</option></select></label>
+    <label>Length <select id="p-len"><option>8</option><option>16</option><option>32</option><option>64</option></select></label>
     <label>Instrument <select id="p-instr"></select></label>
     <label>Octave <input id="p-oct" type="number" min="0" max="7" value="3"></label>
     <label>Step <input id="p-step" type="number" min="0" max="16" value="1"></label>

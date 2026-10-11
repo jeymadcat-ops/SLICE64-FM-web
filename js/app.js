@@ -1,5 +1,5 @@
-import { Song, TRACKS, PATTERNS, INSTRS, SAMPLES, NOTE_OFF, ENGINES, FX_LIST, FX_HELP, PARAMS, DIST_NAMES, DELAY_TIMES, noteName, clamp } from './song.js';
-import { PRESETS, SONG_BYTES } from './data.js';
+import { Song, TRACKS, PATTERNS, INSTRS, SAMPLES, NOTE_OFF, ENGINES, FX_LIST, FX_HELP, PARAMS, DIST_NAMES, DELAY_TIMES, noteName, clamp, SEND_TYPES, GRAIN_SIZES } from './song.js';
+import { PRESETS, PRESET_FOLDERS, SONG_BYTES, OFF_GRAIN } from './data.js';
 import { Bank, RATES, decodeFile, render, play, projectFile, readProject } from './bank.js';
 import { Link, MidiTransport, midiAccess, LinkError, sidHeader } from './sysex.js';
 import { Live } from './live.js';
@@ -130,9 +130,13 @@ function renderSong() {
     range('Reverb send', 'reverb', 63);
     mx.append(strip);
   }
-  const dt = $('#s-dtime');
-  dt.replaceChildren(...DELAY_TIMES.map((n, i) => el('option', { value: i, textContent: n, selected: s.delayTime === i })));
-  for (const [id, key] of [['#s-dfb', 'delayFb'], ['#s-rsize', 'revSize'], ['#s-rdamp', 'revDamp']]) {
+  const dt = $('#s-dtime'), grain = s.delayMode === 1;
+  $('#s-dmode').replaceChildren(...SEND_TYPES.map((n, i) => el('option', { value: i, textContent: n, selected: s.delayMode === i })));
+  dt.replaceChildren(...(grain ? GRAIN_SIZES : DELAY_TIMES).map((n, i) => el('option', { value: i, textContent: n, selected: s.delayTime === i })));
+  $('#s-dtime-l').textContent = grain ? 'Grain size' : 'Delay time';
+  $('#s-dfb-l').textContent = grain ? 'Density' : 'Delay feedback';
+  for (const lab of document.querySelectorAll('label.grain')) lab.style.opacity = grain ? 1 : 0.4;   // the grains' own settings
+  for (const [id, key] of [['#s-dfb', 'delayFb'], ['#s-rsize', 'revSize'], ['#s-rdamp', 'revDamp'], ['#s-gpitch', 'grainPitch'], ['#s-gspread', 'grainSpread']]) {
     const r = $(id);
     r.value = s[key];
     r.nextElementSibling.value = s[key];
@@ -142,7 +146,8 @@ $('#s-name').oninput = (e) => { state.song.name = e.target.value; changed(); };
 $('#s-bpm').onchange = (e) => { state.song.bpm = +e.target.value; e.target.value = state.song.bpm; changed(); };
 $('#s-speed').onchange = (e) => { state.song.speed = +e.target.value; e.target.value = state.song.speed; changed(); };
 $('#s-dtime').onchange = (e) => { state.song.delayTime = +e.target.value; changed(); };
-for (const [id, key] of [['#s-dfb', 'delayFb'], ['#s-rsize', 'revSize'], ['#s-rdamp', 'revDamp']])
+$('#s-dmode').onchange = (e) => { state.song.delayMode = +e.target.value; renderSong(); changed(); };
+for (const [id, key] of [['#s-dfb', 'delayFb'], ['#s-rsize', 'revSize'], ['#s-rdamp', 'revDamp'], ['#s-gpitch', 'grainPitch'], ['#s-gspread', 'grainSpread']])
   $(id).oninput = (e) => { state.song[key] = +e.target.value; e.target.nextElementSibling.value = e.target.value; changed(); };
 
 function orderOp(fn) { fn(state.song); renderSong(); changed(); }
@@ -273,7 +278,12 @@ $('#p-grid').onkeydown = (e) => {
 
 /* --------------------------------------------------------------- instruments */
 
-PRESETS.forEach((pr, i) => $('#i-preset').append(el('option', { value: i, textContent: `${pr.name} (${ENGINES[pr.engine]})` })));
+// the bank as the FM-1 shows it: a folder at a time
+PRESET_FOLDERS.forEach((folder, f) => {
+  const group = el('optgroup', { label: `${folder} (${PRESETS.filter((pr) => pr.folder === f).length})` });
+  PRESETS.forEach((pr, i) => { if (pr.folder === f) group.append(el('option', { value: i, textContent: `${pr.name} (${ENGINES[pr.engine]})` })); });
+  $('#i-preset').append(group);
+});
 
 function renderInstrList() {
   const ol = $('#i-list');
@@ -481,6 +491,7 @@ async function connect() {
     $('#link-pill').textContent = `FM-1 ${info.version}`;
     $('#link-pill').className = 'pill on';
     log(`connected: ${out.name} → / ← ${inp.name}, firmware ${info.version}`);
+    if (info.songBytes <= OFF_GRAIN) log('This firmware is older than s3.9: the GRANULAR send type and its grains are not sent to it (it keeps the delay).');
     if (info.proto >= 2) {
       live.start(state.link, info.proto);
       if (info.proto < 4) log('The Live panel only mirrors with this firmware: install s1.6 or later to play the FM-1 from here.');
