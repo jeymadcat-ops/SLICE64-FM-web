@@ -1,4 +1,4 @@
-import { Song, TRACKS, PATTERNS, INSTRS, SAMPLES, NOTE_OFF, ENGINES, FX_LIST, FX_HELP, PARAMS, DIST_NAMES, DELAY_TIMES, noteName, clamp, SEND_TYPES, GRAIN_SIZES } from './song.js';
+import { Song, TRACKS, PATTERNS, INSTRS, SAMPLES, NOTE_OFF, ENGINES, ALL, FX_LIST, FX_HELP, PARAMS, DIST_NAMES, DELAY_TIMES, noteName, clamp, SEND_TYPES, GRAIN_SIZES } from './song.js';
 import { PRESETS, PRESET_FOLDERS, SONG_BYTES, OFF_GRAIN } from './data.js';
 import { Bank, RATES, decodeFile, render, play, projectFile, readProject } from './bank.js';
 import { Link, MidiTransport, midiAccess, LinkError, sidHeader } from './sysex.js';
@@ -307,7 +307,7 @@ function renderInstr() {
   let group = '';
   for (const p of PARAMS) {
     if (!(p.eng & (1 << eng))) continue;
-    const g = p.eng === 7 ? (p.i >= 21 && p.i <= 24 ? 'LFO' : p.i >= 17 && p.i <= 20 ? 'Filter' : 'Common') : ENGINES[eng];
+    const g = p.eng === ALL ? (p.i >= 21 && p.i <= 24 ? 'LFO' : p.i >= 17 && p.i <= 20 ? 'Filter' : 'Common') : ENGINES[eng];
     if (g !== group) { box.append(el('h3', { textContent: g })); group = g; }
     const v = s.param(i, p), out = el('output');
     const show = (x) => { out.value = p.names ? p.names[x - p.lo] ?? x : p.fmt ? p.fmt(x) : x; };

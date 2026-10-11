@@ -4,7 +4,7 @@ import { SONG_BYTES, INSTR_BYTES, OFF_INSTR, OFF_PATTERN, OFF_GRAIN, ENGINE_DEFA
 export const TRACKS = 4, ROWS = 64, PATTERNS = 32, ORDERS = 64, INSTRS = 32, SAMPLES = 8;
 export const PAT_BYTES = 1 + ROWS * TRACKS * 4;
 export const NOTE_OFF = 0xFF;
-export const ENGINES = ['SID', 'FM', 'SMP'];
+export const ENGINES = ['SID', 'FM', 'SMP', '303'];
 export const FX_LIST = ['0', '1', '2', '3', '4', 'C', 'F', 'R', 'S'];
 export const FX_HELP = {
   '0': '0xy arpeggio: note, +x, +y semitones', '1': '1xx slide up (xx/16 semitone per tick)',
@@ -34,10 +34,11 @@ export function fromBase64(s) {
   return out;
 }
 
-// Instrument parameters: byte index in the 44-byte record, range, engines (bit 0 SID, 1 FM, 2 SMP), names.
-const ALL = 7, SID = 1, FM = 2, SMP = 4;
+// Instrument parameters: byte index in the 44-byte record, range, engines (bit 0 SID, 1 FM, 2 SMP, 3 the 303), names.
+export const ALL = 15;
+const SID = 1, FM = 2, SMP = 4, T303 = 8;
 export const PARAMS = [
-  { id: 'type', label: 'ENGINE', i: 9, lo: 0, hi: 2, eng: ALL, names: ENGINES },
+  { id: 'type', label: 'ENGINE', i: 9, lo: 0, hi: ENGINES.length - 1, eng: ALL, names: ENGINES },
   { id: 'volume', label: 'VOLUME', i: 10, lo: 0, hi: 63, eng: ALL },
   { id: 'pan', label: 'PAN', i: 11, lo: 0, hi: 255, eng: ALL, fmt: (v) => v === 128 ? 'C' : v < 128 ? 'L' + Math.round((128 - v) * 100 / 128) : 'R' + Math.round((v - 128) * 100 / 127) },
   { id: 'transpose', label: 'TRANSP', i: 12, lo: -36, hi: 24, eng: ALL, signed: true, fmt: (v) => (v > 0 ? '+' : '') + v },
@@ -74,6 +75,16 @@ export const PARAMS = [
   { id: 'smode', label: 'MODE', i: 41, lo: 0, hi: 1, eng: SMP, names: ['SLICE', 'PITCH'] },
   { id: 'loop', label: 'LOOP', i: 42, lo: 0, hi: 1, eng: SMP, names: ['OFF', 'ON'] },
   { id: 'reverse', label: 'REVERSE', i: 43, lo: 0, hi: 1, eng: SMP, names: ['OFF', 'ON'] },
+  // the 303 keeps its values in bytes the other engines name differently (engine/fm1_ui.c, pget)
+  { id: 'twave', label: 'WAVE', i: 28, lo: 0, hi: 255, eng: T303, fmt: (v) => v === 0 ? 'SAW' : v === 255 ? 'SQUARE' : Math.floor(v * 100 / 255) + '% SQR' },
+  { id: 'tacc', label: 'ACCENT', i: 29, lo: 0, hi: 63, eng: T303 },
+  { id: 'dfon', label: 'DEVILFSH', i: 41, lo: 0, hi: 1, eng: T303, names: ['OFF', 'ON'] },
+  { id: 'dfacc', label: 'ACC DEC', i: 35, lo: 0, hi: 15, eng: T303 },
+  { id: 'dfswp', label: 'SWEEP', i: 34, lo: 0, hi: 63, eng: T303 },
+  { id: 'dftrk', label: 'TRACK', i: 36, lo: 0, hi: 7, eng: T303 },
+  { id: 'dfsub', label: 'SUB OSC', i: 31, lo: 0, hi: 63, eng: T303, fmt: (v) => v || 'OFF' },
+  { id: 'dffm', label: 'FILT FM', i: 39, lo: 0, hi: 15, eng: T303, fmt: (v) => v || 'OFF' },
+  { id: 'dfdrv', label: 'DRIVE', i: 37, lo: 0, hi: 3, eng: T303, fmt: (v) => v || 'OFF' },
 ];
 function MULTS() { return ['X0.5', 'X1', 'X2', 'X3', 'X4', 'X5', 'X6', 'X7', 'X8', 'X9', 'X10', 'X10', 'X12', 'X12', 'X15', 'X15']; }
 const WAVE_BITS = [1, 2, 4, 8, 3, 5, 6, 7];

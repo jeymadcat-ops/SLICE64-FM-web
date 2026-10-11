@@ -1,6 +1,6 @@
 # SLICE64-FM Editor
 
-A web editor for **SLICE64-FM**, the 4-track SID / FM / sampler tracker firmware for the
+A web editor for **SLICE64-FM**, the SID / FM / sampler / 303 tracker firmware for the
 M-VAVE FM-1. Edit patterns, the song order, the mixer, instruments and samples in the
 browser, then send them to the FM-1 over USB.
 
@@ -21,7 +21,7 @@ browser, then send them to the FM-1 over USB.
 | Live | The FM-1's own screen and lights, mirrored; the panel and the computer keyboard play the FM-1 |
 | Song | Name, BPM, speed, the order list, the 4-track mixer (volume, mute, drive, distortion, sends), the send (delay or granular) and reverb |
 | Pattern | The 32 patterns, tracker-style keyboard entry (FT2 piano layout on physical keys, QWERTY or AZERTY), copy / paste / clear / transpose |
-| Instruments | The 32 instruments, every engine parameter, the 98 factory presets in their 5 folders |
+| Instruments | The 32 instruments, every engine parameter, the 104 factory presets in their 5 folders |
 | Samples | 8 slots: drop any audio file, trim, pick the rate (8 to 32 kHz), normalize, preview; the bank is 8-bit in the FM-1's flash (about 252 KB) |
 
 A song sent to the FM-1 is written to its flash. From firmware s4.4 the FM-1 starts on an empty project and
@@ -32,7 +32,7 @@ writes a `.s64p` project (song + samples); the page also keeps your work in the 
 
 - `index.html`, `css/`, `js/app.js`: the page
 - `js/sysex.js`: the SysEx protocol (frames `F0 7D 53 36 cmd … F7`)
-- `js/song.js`: the song byte layout (38 950 bytes; the stream only grows, an older firmware takes its first bytes)
+- `js/song.js`: the song byte layout (38 956 bytes; the stream only grows, an older firmware takes its first bytes)
 - `js/bank.js`: samples, the bank image, `.s64p` files
 - `js/data.js`: generated from the SLICE64-FM engine (presets, defaults, demo): do not edit
 - `test/link.test.mjs`: the protocol against the firmware's own link code on a simulated flash

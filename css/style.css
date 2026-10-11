@@ -103,7 +103,7 @@ output { font: 12px var(--mono); color: var(--txt); min-width: 2.5em; }
 .ilist li:hover { background: var(--panel2); }
 .ilist li.sel { background: var(--panel2); outline: 1px solid var(--acc); }
 .ilist .n { color: var(--dim); }
-.eng-0 { color: var(--sid); } .eng-1 { color: var(--fm); } .eng-2 { color: var(--smp); }
+.eng-0 { color: var(--sid); } .eng-1 { color: var(--fm); } .eng-2 { color: var(--smp); } .eng-3 { color: #ffe14a; }
 .params { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 8px 24px; margin-top: 12px; }
 .param { display: grid; grid-template-columns: 84px minmax(0, 1fr) 76px; gap: 10px; align-items: center; font-size: 13px; }
 .param input[type=range], .param select { width: 100%; min-width: 0; }
