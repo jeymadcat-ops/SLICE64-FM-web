@@ -106,7 +106,7 @@ export class Live {
       if (!usable(e)) return;
       // up / down is SELECT and left / right ALGORITHM (since firmware s3.9), except where the page is the other way round:
       // TRACK (SELECT picks the track, ALGORITHM goes down its rows), BASSLINE and ARP (up is SELECT +1). The page comes with
-      // the lights from protocol 8 (firmware after s6.2); an older firmware keeps the plain mapping.
+      // the lights from protocol 8 (the current s6.2 build); an older firmware keeps the plain mapping.
       const page = this.proto >= 8 ? this.lights.page : -1;
       const ARROW = page === 0 ? { ArrowUp: [3, -1], ArrowDown: [3, 1], ArrowLeft: [1, -1], ArrowRight: [1, 1] }
         : page === 9 || page === 10 ? { ArrowUp: [1, 1], ArrowDown: [1, -1], ArrowLeft: [3, -1], ArrowRight: [3, 1] }

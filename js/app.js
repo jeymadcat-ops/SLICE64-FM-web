@@ -1,5 +1,5 @@
 import { Song, TRACKS, PATTERNS, INSTRS, SAMPLES, NOTE_OFF, ENGINES, ALL, FX_LIST, FX_HELP, PARAMS, DIST_NAMES, DELAY_TIMES, noteName, clamp, SEND_TYPES, GRAIN_SIZES } from './song.js';
-import { PRESETS, PRESET_FOLDERS, SONG_BYTES, OFF_GRAIN, ATAB_COUNT, ATAB_STEPS } from './data.js';
+import { PRESETS, PRESET_FOLDERS, SONG_BYTES, OFF_GRAIN, ATAB_COUNT, ATAB_STEPS, FW_VERSION } from './data.js';
 import { Bank, RATES, decodeFile, render, play, projectFile, readProject } from './bank.js';
 import { Link, MidiTransport, midiAccess, LinkError, sidHeader } from './sysex.js';
 import { Live } from './live.js';
@@ -17,6 +17,7 @@ const state = {
 };
 state.bank.loadDemo();
 const live = new Live($('#l-panel'), $('#l-status'));
+$('#fw-version').textContent = FW_VERSION;
 live.paused = () => state.busy || !$('#tab-live').classList.contains('on');
 live.bindKeyboard(() => $('#tab-live').classList.contains('on'));
 
@@ -521,6 +522,9 @@ async function connect() {
     $('#link-pill').textContent = `FM-1 ${info.version}`;
     $('#link-pill').className = 'pill on';
     log(`connected: ${out.name} → / ← ${inp.name}, firmware ${info.version}`);
+    // one version everywhere: the FM-1, this page and the emulator are built from the same number
+    if (info.version !== FW_VERSION) log(`The FM-1 runs ${info.version} and this page is made for ${FW_VERSION}: install ${FW_VERSION} on the FM-1 so both match.`);
+    else if (info.proto < 8) log(`This ${FW_VERSION} is its first build: install the current ${FW_VERSION} file again and the Live arrow keys will follow the TRACK page.`);
     if (info.songBytes <= OFF_GRAIN) log('This firmware is older than s3.9: the GRANULAR send type and its grains are not sent to it (it keeps the delay).');
     if (info.proto >= 2) {
       live.start(state.link, info.proto);
