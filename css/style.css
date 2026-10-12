@@ -109,6 +109,14 @@ output { font: 12px var(--mono); color: var(--txt); min-width: 2.5em; }
 .param input[type=range], .param select { width: 100%; min-width: 0; }
 .param span { color: var(--dim); font-family: var(--mono); font-size: 12px; }
 .param output { text-align: right; }
+.asteps { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+.astep { border: 1px solid var(--line, #2a2f3a); border-radius: 6px; padding: 4px; text-align: center; font-size: 12px; }
+.astep.off { opacity: .4; }
+.astep.loop { border-color: var(--rec); }
+.astep .bar { position: relative; height: 54px; margin-bottom: 4px; background: rgba(255,255,255,.04); border-radius: 3px; }
+.astep .bar i { position: absolute; left: 20%; right: 20%; background: var(--acc); border-radius: 2px; }
+.astep .bar::after { content: ''; position: absolute; left: 0; right: 0; top: 50%; border-top: 1px solid rgba(255,255,255,.25); }
+.astep input { width: 100%; text-align: center; }
 .params h3 { grid-column: 1 / -1; margin: 10px 0 0; }
 
 /* samples */

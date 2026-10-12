@@ -1,5 +1,5 @@
 import { Song, TRACKS, PATTERNS, INSTRS, SAMPLES, NOTE_OFF, ENGINES, ALL, FX_LIST, FX_HELP, PARAMS, DIST_NAMES, DELAY_TIMES, noteName, clamp, SEND_TYPES, GRAIN_SIZES } from './song.js';
-import { PRESETS, PRESET_FOLDERS, SONG_BYTES, OFF_GRAIN } from './data.js';
+import { PRESETS, PRESET_FOLDERS, SONG_BYTES, OFF_GRAIN, ATAB_COUNT, ATAB_STEPS } from './data.js';
 import { Bank, RATES, decodeFile, render, play, projectFile, readProject } from './bank.js';
 import { Link, MidiTransport, midiAccess, LinkError, sidHeader } from './sysex.js';
 import { Live } from './live.js';
@@ -299,6 +299,7 @@ function renderInstrList() {
 }
 
 function renderInstr() {
+  queueMicrotask(renderArp);   // the instrument's ARP table, below its settings
   const s = state.song, i = state.editInstr, eng = s.instrEngine(i);
   $('#i-title').textContent = `Instrument ${hex2(i + 1)}`;
   $('#i-name').value = s.instrName(i);
@@ -325,6 +326,35 @@ function renderInstr() {
     box.append(el('div', { className: 'param' }, el('span', { textContent: p.label }), ctl, out));
   }
 }
+/* ARP TABLES: the instrument's table and the table editor */
+function renderArp() {
+  const s = state.song, i = state.editInstr, use = $('#a-use'), tab = $('#a-tab');
+  state.editAtab = Math.min(state.editAtab ?? 0, ATAB_COUNT - 1);
+  use.replaceChildren(el('option', { value: 0, textContent: 'no table' }),
+    ...Array.from({ length: ATAB_COUNT }, (_, t) => el('option', { value: t + 1, textContent: `table ${t + 1}` })));
+  use.value = s.instrArp(i);
+  tab.replaceChildren(...Array.from({ length: ATAB_COUNT }, (_, t) => el('option', { value: t, textContent: `table ${t + 1}` })));
+  tab.value = state.editAtab;
+  const a = s.atab(state.editAtab);
+  $('#a-len').value = a.len; $('#a-speed').value = a.speed; $('#a-loop').value = a.loop;
+  const box = $('#a-steps');
+  box.replaceChildren();
+  a.steps.forEach((v, k) => {
+    const bar = el('div', { className: 'bar' }), h = Math.round(Math.min(Math.abs(v), 24) * 50 / 24);   // the bar is full at an octave and a half
+    const fill = el('i');
+    fill.style.height = Math.max(v ? 2 : 0, h) + '%'; fill.style[v >= 0 ? 'bottom' : 'top'] = '50%'; fill.style.height = Math.max(v ? 2 : 0, h) + '%';
+    bar.append(fill);
+    const num = el('input', { type: 'number', min: -48, max: 48, value: v });
+    num.oninput = () => { const t = s.atab(state.editAtab); t.steps[k] = +num.value; s.setAtab(state.editAtab, t); changed(); renderArp(); };
+    box.append(el('div', { className: 'astep' + (k >= a.len ? ' off' : '') + (k === a.loop && a.loop ? ' loop' : ''), title: `step ${k + 1}` }, bar, num));
+  });
+}
+$('#a-use').onchange = (e) => { state.song.setInstrArp(state.editInstr, +e.target.value); if (+e.target.value) state.editAtab = +e.target.value - 1; changed(); renderArp(); };
+$('#a-tab').onchange = (e) => { state.editAtab = +e.target.value; renderArp(); };
+for (const [id, f] of [['#a-len', 'len'], ['#a-speed', 'speed'], ['#a-loop', 'loop']])
+  $(id).onchange = (e) => { const t = state.song.atab(state.editAtab); t[f] = +e.target.value; state.song.setAtab(state.editAtab, t); changed(); renderArp(); };
+$('#a-rand').onclick = () => { state.song.randomAtab(state.editAtab, true); changed(); renderArp(); };
+
 $('#i-name').oninput = (e) => { state.song.setInstrName(state.editInstr, e.target.value); renderInstrList(); changed(); };
 $('#i-load').onclick = () => { state.song.loadPreset(state.editInstr, +$('#i-preset').value); renderInstr(); renderInstrList(); changed(); };
 $('#i-copy').onclick = () => { state.clipInstr = state.song.instrBytes(state.editInstr).slice(); toast('Instrument copied'); };

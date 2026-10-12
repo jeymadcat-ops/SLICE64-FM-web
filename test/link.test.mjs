@@ -128,9 +128,11 @@ try {
     const th = l.theme;
     l = await link.input(2, 2, 1);                           // + PRESETS: the next theme
     check(l.theme === th + 1, 'input: SEQ + PRESETS theme');
+    check(info.proto >= 8 && l.page === 6, 'input: protocol 8 carries the page (SEQ: DRUM = 6), the theme stays apart');
     await link.input(0, 9, 0);
     await link.input(0, 6, 1);                               // HOME: the tracker (the keys play notes there)
-    await link.input(0, 6, 0);
+    l = await link.input(0, 6, 0);
+    check(l.page === 0, 'input: HOME: the TRACK page is 0 (the arrow keys swap there)');
     l = await link.input(1, 7, 1);
     check(l.keys >> 7 & 1, 'input: key held');
     l = await link.input(1, 7, 0);

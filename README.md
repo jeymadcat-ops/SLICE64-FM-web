@@ -21,7 +21,7 @@ browser, then send them to the FM-1 over USB.
 | Live | The FM-1's own screen and lights, mirrored; the panel and the computer keyboard play the FM-1 |
 | Song | Name, BPM, speed, the order list, the 4-track mixer (volume, mute, drive, distortion, sends), the send (delay or granular) and reverb |
 | Pattern | The 32 patterns, tracker-style keyboard entry (FT2 piano layout on physical keys, QWERTY or AZERTY), copy / paste / clear / transpose |
-| Instruments | The 32 instruments, every engine parameter, the 104 factory presets in their 5 folders |
+| Instruments | The 32 instruments, every engine parameter, the 104 factory presets in their 5 folders, and the 8 ARP tables (an arpeggio an instrument plays by itself) |
 | Samples | 8 slots: drop any audio file, trim, pick the rate (8 to 32 kHz), normalize, preview; the bank is 8-bit in the FM-1's flash (about 252 KB) |
 
 A song sent to the FM-1 is written to its flash. From firmware s4.4 the FM-1 starts on an empty project and

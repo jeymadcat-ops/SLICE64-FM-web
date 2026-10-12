@@ -104,8 +104,13 @@ export class Live {
       !(e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement || e.target instanceof HTMLTextAreaElement);
     document.addEventListener('keydown', (e) => {
       if (!usable(e)) return;
-      // on every page SELECT goes up / down and ALGORITHM left / right (since firmware s3.9)
-      const ARROW = { ArrowUp: [1, -1], ArrowDown: [1, 1], ArrowLeft: [3, -1], ArrowRight: [3, 1] };
+      // up / down is SELECT and left / right ALGORITHM (since firmware s3.9), except where the page is the other way round:
+      // TRACK (SELECT picks the track, ALGORITHM goes down its rows), BASSLINE and ARP (up is SELECT +1). The page comes with
+      // the lights from protocol 8 (firmware after s6.2); an older firmware keeps the plain mapping.
+      const page = this.proto >= 8 ? this.lights.page : -1;
+      const ARROW = page === 0 ? { ArrowUp: [3, -1], ArrowDown: [3, 1], ArrowLeft: [1, -1], ArrowRight: [1, 1] }
+        : page === 9 || page === 10 ? { ArrowUp: [1, 1], ArrowDown: [1, -1], ArrowLeft: [3, -1], ArrowRight: [3, 1] }
+        : { ArrowUp: [1, -1], ArrowDown: [1, 1], ArrowLeft: [3, -1], ArrowRight: [3, 1] };
       let done = true;
       if (e.code in ARROW) this._turn(...ARROW[e.code]);
       else if (e.code in KNOB) this._turn(...KNOB[e.code]);

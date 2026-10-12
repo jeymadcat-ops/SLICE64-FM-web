@@ -4,6 +4,11 @@ export const INSTR_BYTES = 44;
 export const OFF_INSTR = 111;
 export const OFF_PATTERN = 1519;
 export const OFF_GRAIN = 38947;
+export const OFF_INSARP = 38956;
+export const OFF_ATAB = 38988;
+export const ATAB_COUNT = 8;
+export const ATAB_STEPS = 16;
+export const ATAB_BYTES = 19;
 export const PRESET_FOLDERS = ["DRUM", "SYNTH", "BASS", "LEAD", "FX"];
 export const PRESETS = [
   { name: "KCK 808", engine: 1, folder: 0, bytes: [75,67,75,32,56,48,56,0,0,1,60,128,232,0,10,0,8,0,200,4,0,32,0,0,0,24,6,0,128,0,0,0,1,1,3,2,0,0,0,0,16,0,0,0] },

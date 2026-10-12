@@ -146,7 +146,7 @@ export class Link {
   // screen mirror (protocol 2): the next changed band of 8 rows, and the panel lights
   async screen(reset = false) {
     const a = await this.request(CMD.SCREEN, [reset ? 1 : 0], { timeout: 1500, tries: 1 });
-    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], band: a[16],
+    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15] & 7, page: a[15] >> 3, band: a[16],
       data: a[16] === 127 ? null : unpack7(a, 17) };
   }
 
@@ -156,7 +156,7 @@ export class Link {
     this.onPush = (cmd, a) => { if (cmd === CMD.SCREEN && a[16] !== 127) bands.push({ band: a[16], data: unpack7(a, 17) }); };
     try {
       const a = await this.request(CMD.SCREEN_ALL, [reset ? 1 : 0], { timeout: 2000, tries: 1 });
-      return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], sent: a[16], bands };
+      return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15] & 7, page: a[15] >> 3, sent: a[16], bands };
     } finally { this.onPush = null; }
   }
 
@@ -170,13 +170,13 @@ export class Link {
       bands.push({ band, data: unpack7(a, p + 3, p + 3 + packed) });
       p += 3 + packed;
     }
-    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15], sent: bands.length, bands };
+    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15] & 7, page: a[15] >> 3, sent: bands.length, bands };
   }
 
   // protocol 4: the editor's panel plays the FM-1 (kind 0 button, 1 key, 2 knob; value 1/0 or steps)
   async input(kind, id, value) {
     const a = await this.request(CMD.INPUT, [kind, id, ...u14(value + 8192)], { timeout: 800, tries: 3 });
-    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15] };
+    return { lit: getU32(a, 0), glow: getU32(a, 5), keys: getU32(a, 10), theme: a[15] & 7, page: a[15] >> 3 };
   }
 
   // data: the bank's 8-bit data; entries: 8 x 24 bytes (name[8], rate, off, len, 0, little endian)

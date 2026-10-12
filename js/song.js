@@ -1,5 +1,5 @@
 // The song as the FM-1 keeps it: the fixed byte stream of SLICE64-FM engine/fm1_song_io.h.
-import { SONG_BYTES, INSTR_BYTES, OFF_INSTR, OFF_PATTERN, OFF_GRAIN, ENGINE_DEFAULTS, PRESETS, NEW_SONG, DEMO_SONG, CHIP_SONG, TECHNO_SONG, ACID_SONG, GOA_SONG, NOVA_SONG } from './data.js';
+import { SONG_BYTES, INSTR_BYTES, OFF_INSTR, OFF_PATTERN, OFF_GRAIN, OFF_INSARP, OFF_ATAB, ATAB_COUNT, ATAB_STEPS, ATAB_BYTES, ENGINE_DEFAULTS, PRESETS, NEW_SONG, DEMO_SONG, CHIP_SONG, TECHNO_SONG, ACID_SONG, GOA_SONG, NOVA_SONG } from './data.js';
 
 export const TRACKS = 4, ROWS = 64, PATTERNS = 32, ORDERS = 64, INSTRS = 32, SAMPLES = 8;
 export const PAT_BYTES = 1 + ROWS * TRACKS * 4;
@@ -129,6 +129,34 @@ export class Song {
   get numOrders() { return this.b[46]; } set numOrders(v) { this.b[46] = clamp(v, 1, ORDERS); }
   order(i) { return this.b[47 + i]; }
   setOrder(i, p) { this.b[47 + i] = clamp(p, 0, PATTERNS - 1); }
+
+  // ARP TABLES (firmware s6.0 on): each instrument plays one (0 = none), 8 tables of semitone steps
+  instrArp(i) { const v = this.b[OFF_INSARP + i]; return v <= ATAB_COUNT ? v : 0; }
+  setInstrArp(i, v) { this.b[OFF_INSARP + i] = clamp(v, 0, ATAB_COUNT); }
+  atab(t) {
+    const o = OFF_ATAB + t * ATAB_BYTES;
+    return { len: clamp(this.b[o], 1, ATAB_STEPS), speed: clamp(this.b[o + 1], 1, 16), loop: this.b[o + 2],
+      steps: Array.from({ length: ATAB_STEPS }, (_, k) => (this.b[o + 3 + k] << 24) >> 24) };
+  }
+  setAtab(t, { len, speed, loop, steps }) {
+    const o = OFF_ATAB + t * ATAB_BYTES;
+    len = clamp(len, 1, ATAB_STEPS);
+    this.b[o] = len; this.b[o + 1] = clamp(speed, 1, 16); this.b[o + 2] = clamp(loop, 0, len - 1);
+    for (let k = 0; k < ATAB_STEPS; k++) this.b[o + 3 + k] = clamp(steps[k] || 0, -48, 48) & 0xFF;
+  }
+  // a chord figure like the firmware's random table: major or minor, sometimes a seventh, an octave up or down.
+  // keep: the length, speed and loop stay (the whole length is drawn), else a new length of 3 to 8 and a speed of 1 to 3
+  randomAtab(t, keep = true) {
+    const a = this.atab(t), rnd = (n) => Math.floor(Math.random() * n);
+    const third = rnd(2) ? 4 : 3, seventh = rnd(2) ? 11 : 10;
+    if (!keep) { a.len = 3 + rnd(6); a.speed = 1 + rnd(3); a.loop = rnd(100) < 30 ? rnd(a.len) : 0; }
+    a.steps = a.steps.map((_, k) => {
+      if (!k) return 0;
+      const r = rnd(100);
+      return r < 25 ? third : r < 50 ? 7 : r < 68 ? 12 : r < 78 ? seventh : r < 86 ? 19 : r < 93 ? -12 : 0;
+    });
+    this.setAtab(t, a);
+  }
 
   // instruments (0-based index)
   instrOff(i) { return OFF_INSTR + i * INSTR_BYTES; }
